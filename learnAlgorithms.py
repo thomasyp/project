@@ -4,7 +4,11 @@ Spyder Editor
 
 This is code for Studying introduction to algorithms
 by thomas
-
+ssfsagasgsgdg
+sfsdaf
+sagdasdg
+sdfasgg
+sdgas
 """
 import random
 
