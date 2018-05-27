@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Spyder Editor
+Spyder Editor 
 
 This is code for Studying introduction to algorithms
+by thomas
 
 """
 import random
