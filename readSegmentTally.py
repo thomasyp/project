@@ -16,7 +16,26 @@ class ReadTally(object):
     def __init__(self):
         pass
     
-    
+    def getSegmentCoordate(self,**kw):
+        positiveSurfaces = {}
+        negativeSurfaces = {}        
+        for key in kw.keys():
+            if(int(key) >0):            
+                positiveSurfaces[key] = float(kw[key])
+            else:
+                negativeSurfaces[key] = float(kw[key])
+        sortedPosSurfaces = sorted(positiveSurfaces.items(), key=lambda item:item[1])
+        sortedNegSurfaces = sorted(negativeSurfaces.items(), key=lambda item:item[1])
+       
+        if len(sortedPosSurfaces) == 0 or len(sortedNegSurfaces) == 0:
+            print "Error: surfaces lists is empty!"
+            return None
+        if sortedPosSurfaces[-1][1] > sortedNegSurfaces[0][1]:
+            print "Error: positive surface and negative surface set error! "
+            return None
+        
+        return sortedPosSurfaces[-1][1] + (sortedNegSurfaces[0][1] - sortedPosSurfaces[-1][1]) / 2.
+        
     def write2dat(self, filename, **kw):
         readTag = {}
         data = np.array([])
@@ -55,5 +74,8 @@ class ReadTally(object):
 
 
 if __name__ == '__main__':
+    rt = ReadTally();
+    dicts = {'-2000':'175','-2001':'170','-2002':'165','-2003':'160','-2004':'155','2005 ':'150'}
+    print rt.getSegmentCoordate(**dicts)
     
  
