@@ -28,14 +28,37 @@ class ReadTally(object):
         sortedNegSurfaces = sorted(negativeSurfaces.items(), key=lambda item:item[1])
        
         if len(sortedPosSurfaces) == 0 or len(sortedNegSurfaces) == 0:
-            print "Error: surfaces lists is empty!"
+            print ("Error: surfaces lists is empty!")
             return None
         if sortedPosSurfaces[-1][1] > sortedNegSurfaces[0][1]:
-            print "Error: positive surface and negative surface set error! "
+            print ("Error: positive surface and negative surface set error! ")
             return None
         
         return sortedPosSurfaces[-1][1] + (sortedNegSurfaces[0][1] - sortedPosSurfaces[-1][1]) / 2.
         
+    def readSurfaces(self, filename):
+        readTag = False
+        reString1 = '^\d\.\d{4}E[+-]\d{2}\s+\d\.\d{5}E[+-]\d{2}\s+\d\.\d+$'
+        reString2 = '^\d+$'
+        surfaces = {}
+        with open(filename, 'r') as fileid:
+            for eachline in fileid:
+                lists = eachline.strip().split()
+                
+                if '1surfaces' in eachline:                    
+                    readTag = True
+                    
+                if '1  identical surfaces' in eachline:
+                    readTag = False
+                
+                if len(lists)>0 and readTag:
+                    
+                    if re.match(reString2, lists[0]) and len(lists) == 4:
+#                        print (eachline)
+                        surfaces[lists[1]] = lists[3]
+        return surfaces
+                    
+    
     def write2dat(self, filename, **kw):
         readTag = {}
         data = np.array([])
@@ -76,6 +99,8 @@ class ReadTally(object):
 if __name__ == '__main__':
     rt = ReadTally();
     dicts = {'-2000':'175','-2001':'170','-2002':'165','-2003':'160','-2004':'155','2005 ':'150'}
-    print rt.getSegmentCoordate(**dicts)
+    print (rt.getSegmentCoordate(**dicts))
+    dicts = rt.readSurfaces('fast.log')
+    print(dicts['156057'])
     
  
