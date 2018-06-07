@@ -34,38 +34,19 @@ class ReadTally(object):
             print ("Error: positive surface and negative surface set error! ")
             return None
         
-        return sortedPosSurfaces[-1][1] + (sortedNegSurfaces[0][1] - sortedPosSurfaces[-1][1]) / 2.
-        
-    def readSurfaces(self, filename):
-        readTag = False
-        reString1 = '^\d\.\d{4}E[+-]\d{2}\s+\d\.\d{5}E[+-]\d{2}\s+\d\.\d+$'
-        reString2 = '^\d+$'
-        surfaces = {}
-        with open(filename, 'r') as fileid:
-            for eachline in fileid:
-                lists = eachline.strip().split()
-                
-                if '1surfaces' in eachline:                    
-                    readTag = True
-                    
-                if '1  identical surfaces' in eachline:
-                    readTag = False
-                
-                if len(lists)>0 and readTag:
-                    
-                    if re.match(reString2, lists[0]) and len(lists) == 4:
-#                        print (eachline)
-                        surfaces[lists[1]] = lists[3]
-        return surfaces
-                    
+        return sortedPosSurfaces[-1][1] + (sortedNegSurfaces[0][1] - sortedPosSurfaces[-1][1]) / 2.                            
     
     def write2dat(self, filename, **kw):
         readTag = {}
+        readSurfaceTag = False
+        reString2 = '^\d+$'
+        surfacesDict = {}
         data = np.array([])
         reString = '^\d\.\d{4}E[+-]\d{2}\s+\d\.\d{5}E[+-]\d{2}\s+\d\.\d+$'
+        datadict = {}
         
         for key, v in kw.items():
-            self.keyName.append(key)
+            
             readTag[key] = False
             
         
@@ -73,6 +54,19 @@ class ReadTally(object):
         with open(filename, 'r') as fileid:
             for eachline in fileid:
                 lists = eachline.strip().split()
+                # read segment surface
+                if '1surfaces' in eachline:                    
+                    readSurfaceTag = True
+                    
+                if '1  identical surfaces' in eachline:
+                    readSurfaceTag = False
+                
+                if len(lists)>0 and readSurfaceTag:
+                    
+                    if re.match(reString2, lists[0]) and len(lists) == 4:
+#                        print (eachline)
+                        surfacesDict[lists[1]] = lists[3]
+                # read segment surface        
                 if len(lists) > 3:
                     
                     if lists[0] == '1tally' and lists[2] == 'nps':
@@ -87,20 +81,21 @@ class ReadTally(object):
                         if readTag[key] is True:
                             if re.match(reString, eachline.strip()) is not None:
                                 datadict[key].append(eachline.strip())
-                                data
+                                #data
         #        print (datadict)
-        for key, tallyNum in kw.items():
-            datafilename = key + '.dat'  # type: str
-            with open(datafilename, 'w') as f:
-                for row in datadict[key]:
-                    f.write('{}\n'.format(row))
+#        for key, tallyNum in kw.items():
+#            datafilename = key + '.dat'  # type: str
+#            with open(datafilename, 'w') as f:
+#                for row in datadict[key]:
+#                    f.write('{}\n'.format(row))
+        print(surfacesDict)
 
 
 if __name__ == '__main__':
     rt = ReadTally();
     dicts = {'-2000':'175','-2001':'170','-2002':'165','-2003':'160','-2004':'155','2005 ':'150'}
-    print (rt.getSegmentCoordate(**dicts))
-    dicts = rt.readSurfaces('fast.log')
-    print(dicts['156057'])
+    
+    rt.write2dat('fast.log',test='3')
+    
     
  
