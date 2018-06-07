@@ -104,8 +104,8 @@ venv.bak/
 .mypy_cache/
 
 # data
-*.dat/
-*.data/
+*.dat
+*.data
 
 # windows files
 *.bak
