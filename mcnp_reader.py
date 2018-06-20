@@ -81,7 +81,7 @@ class McnpTallyReader(object):
                 for row in datadict[key]:
                     f.write('{}\n'.format(row))
     
-    def readLatticeData2dat(self,filename,**kw):
+    def readLatticeData2dat(self, filename,**kw):
         """
             Function: read results(lattice format data) from mcnp output file and write the data to
             a .dat file.
@@ -123,7 +123,7 @@ class McnpTallyReader(object):
                 for row in datadict[key]:
                     f.write('{}\n'.format(row))
     
-    def isLatticeData(self,strs):
+    def isLatticeData(self, strs):
         lists = strs.strip().split()
         if len(lists) > 1:
             if re.match('\d\.\d{4,5}E[+-]\d{2}',lists[0]) is not None:
@@ -131,22 +131,47 @@ class McnpTallyReader(object):
                     return True
         return False
                     
-    def isLatticeTag(self,strs):
+    def isLatticeTag(self, strs):
         lists = strs.strip().split()
         if len(lists) > 0:
             if ('cell (' in strs) and ('[' and ']' in strs):
                 return True
         return False
-                          
+        
+    def readKeff(self, filename):
+        results = {}
+        with open(filename,'r') as fileid:
+            for eachline in fileid:
+                if "the final estimated combined collision" in eachline:
+                    data = []
+                    lists = eachline.strip().split()
+                    for ii in lists:
+                        if re.match('\d.\d{4,5}$',ii) is not None:
+                            data.append(ii)
+                if "the average number of neutrons produced per fission" in eachline:
+                    print 'dsfs'
+                    lists = eachline.strip().split()
+                    for ii in lists:
+                        if re.match('\d.\d{2,3}$',ii) is not None:
+                            results['v'] = ii
+        if len(data) == 2:
+            results['keff'] = data[0]
+            results['error'] = data[1]
+        else:
+            return None
+        return results
+                         
 if __name__ == '__main__':
     mtr = McnpTallyReader()
 #    mtr.readLatticeData2dat('pow.log',fuel=36)
-    tallys = {'fuel in active region':6, "grapht in active region":16, \
-    'bypass':26, "primary container":36, "top plenum":46, "top support plate":56,\
-    'top cap':66, 'bottom plenum':76, 'top support plate':86, 'bottom cap':96, \
-    'top reflector':116, 'bottom reflector':126, 'pump sump':136, 'rod':146,\
-    'tube':156, 'heat exchanger':166}
-    
-    print mtr.readSingleTally('dept.log', **tallys)
+#    tallys = {'fuel in active region':6, "grapht in active region":16, \
+#    'bypass':26, "primary container":36, "top plenum":46, "top support plate":56,\
+#    'top cap':66, 'bottom plenum':76, 'top support plate':86, 'bottom cap':96, \
+#    'top reflector':116, 'bottom reflector':126, 'pump sump':136, 'rod':146,\
+#    'tube':156, 'heat exchanger':166}
+#    
+#    print mtr.readSingleTally('dept.log', **tallys)
+    data = mtr.readKeff("fast.log")
+    print data
     
     
