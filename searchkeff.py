@@ -74,7 +74,7 @@ def modifyMcnpInput(inputfile, modifedfile, startU233):
     m5.insertElement('74000', '55c', 3.80e-5)
     m5.insertElement('82000', '50c', 2.41e-2)
     
-    restoffile = 'mode   n\nkcode   100 1 5 80\nksrc    0 0 0\nprint'
+    restoffile = 'mode   n\nkcode   20000 1 50 250\nksrc    0 0 0\nprint'
     
     with open(inputfile,'r') as fid2, open(modifedfile,'w') as fid1:    
         for eachline in fid2:
@@ -92,29 +92,33 @@ def modifyMcnpInput(inputfile, modifedfile, startU233):
         fid1.write(m5.convertMcard())
         fid1.write(restoffile)
         
-def searchKeff(inputfile, modifedfile, startU233=0.1, steplenth=0.01, eps=5e-4):
+def cleandir(*files):
+    for f in files:
+        if os.path.exists(f):
+            os.remove(f)
+        
+def searchKeff(inputfile, modifedfile, objectkeff, startU233=0.097, steplenth=0.00005, eps=5e-4):
     outfile = 'out'
     mtr = McnpTallyReader()
-    if os.path.exists(outfile):
-        os.remove(outfile)
+    cleandir(outfile, 'runtpe', 'srctp')
     modifyMcnpInput(inputfile, modifedfile, startU233)
     cmd = 'mcnpx i={} o={}'.format(modifedfile, outfile)
     os.system(cmd)
     resluts = mtr.readKeff(outfile)
     with open("keff.txt", 'w') as fid:
-        fid.write('keff = {resluts[keff]}  error = {resluts[error]}\n'.format(resluts=resluts))
+        fid.write('E = {:.4%}  keff = {resluts[keff]}  error = {resluts[error]}\n'.format(startU233, resluts=resluts))
         ii = 1
-        while(float(resluts['keff'])-eps > 0):
-            if os.path.exists(outfile):
-                os.remove(outfile)
+        while(abs(abs(float(resluts['keff'])-objectkeff)-eps) > 0):
+            cleandir(outfile, 'runtpe', 'srctp')
             if ii > 100:
                 return
-            modifyMcnpInput(inputfile, modifedfile, startU233-steplenth*ii)
+            startU233 = startU233 - steplenth
+            modifyMcnpInput(inputfile, modifedfile, startU233)
             os.system(cmd)
             resluts = mtr.readKeff(outfile)
-            fid.write('keff = {resluts[keff]}  error = {resluts[error]}\n'.format(resluts=resluts))
+            fid.write('E = {:.4%}  keff = {resluts[keff]}  error = {resluts[error]}\n'.format(startU233, resluts=resluts))
             ii = ii + 1 
     
     
-searchKeff('crit.txt', 'inp.txt')    
+searchKeff('crit.txt', 'inp.txt', 0.9400, 0.094)    
             
