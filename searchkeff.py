@@ -108,7 +108,7 @@ def searchKeff(inputfile, modifedfile, objectkeff, startU233=0.097, steplenth=0.
     with open("keff.txt", 'w') as fid:
         fid.write('E = {:.4%}  keff = {resluts[keff]}  error = {resluts[error]}\n'.format(startU233, resluts=resluts))
         ii = 1
-        while(abs(abs(float(resluts['keff'])-objectkeff)-eps) > 0):
+        while(abs(float(resluts['keff'])-objectkeff) > eps):
             cleandir(outfile, 'runtpe', 'srctp')
             if ii > 100:
                 return
