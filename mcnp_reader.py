@@ -149,7 +149,7 @@ class McnpTallyReader(object):
                         if re.match('\d.\d{4,5}$',ii) is not None:
                             data.append(ii)
                 if "the average number of neutrons produced per fission" in eachline:
-                    print 'dsfs'
+                    
                     lists = eachline.strip().split()
                     for ii in lists:
                         if re.match('\d.\d{2,3}$',ii) is not None:
@@ -172,6 +172,6 @@ if __name__ == '__main__':
 #    
 #    print mtr.readSingleTally('dept.log', **tallys)
     data = mtr.readKeff("fast.log")
-    print data
+    
     
     
