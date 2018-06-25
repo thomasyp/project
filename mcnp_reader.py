@@ -160,6 +160,91 @@ class McnpTallyReader(object):
         else:
             return None
         return results
+        
+    def readDataIntoArray(self,meshtalFile,tallyNumber,group,dataType):
+        """
+        Fuction name: 
+            readDataIntoArray           
+        Fuction:
+            读取原始meshtal 文件中的一个能群的网格体积以及Rslt * Vol数据
+        Input parameter:
+            文件路径和文件名：meshtalFile
+            需要读取的哪部分tally给出tally number：tally_number
+            需要读取的哪个能群的数据：group
+            需要读取哪一列数据：dataType
+        Return:   
+            文件中的数据 list：dataArray
+        """
+        readtag = False
+        dataArray = []
+        namelists = []
+        nx = 0
+        ny = 0
+        nz = 0
+        ngroup = 0
+        nline = 0
+        totRow = 0 # 选择读取数据的列号
+        numMesh = 0
+        startline = 0
+                
+        
+        try:
+            meshFid = open(meshtalFile,'r')
+        except IOError as e:
+            print "Error 11004: meshtal file open error: ",e
+            return -1
+        else:
+            print "Comment: Reading meshtal file..."
+            for eachline in meshFid:                
+                if "Mesh Tally Number" in eachline:
+                        lists = eachline.strip().split()
+                        if lists[3] == tallyNumber:
+                            readtag = True
+                        else:
+                            readtag = False
+                if readtag:
+                    lists = eachline.strip().split()
+                    if nx*ny*nz*ngroup*totRow == 0:                       
+                        if "X direction" in eachline or "R direction" in eachline:
+                            nx =  len(eachline[eachline.find(':')+1 :].strip().split()) - 1
+                            
+                        if "Y direction" in eachline or "Theta direction" in eachline:
+                            ny =  len(eachline[eachline.find(':')+1 :].strip().split()) - 1
+                            
+                        if "Z direction" in eachline:
+                            nz =  len(eachline[eachline.find(':')+1 :].strip().split()) - 1
+                            
+                            startline = (group - 1) * numMesh + 1
+                        if "Energy bin boundaries" in eachline:
+                            ngroup = len(lists) - 4
+                            if group > ngroup:
+                                print "Error 11015: Input group number is out of range!"
+                                return -1
+                        if "Rel Error" in eachline:                           
+                            indx = lists.index("Rel")
+                            del lists[indx]
+                            lists[indx] = "Rel Error"
+                            indx = lists.index("Rslt")
+                            del lists[indx:indx+2]
+                            lists[indx] = "Rslt * Vol" 
+                            namelists.extend(lists)
+                            totRow = len(lists)
+                            if dataType not in namelists:
+                                print "Error 11010: The meshtal file have not the data type: %s"%dataType
+                                return -1                                              
+                    else:
+                        nRow = namelists.index(dataType)
+                        
+                        nline = nline + 1
+                        if lists and nline >= startline: 
+                            #print lists, readtag
+                            dataArray.append(lists[nRow])
+                            numMesh = nx * ny * nz
+                            
+                            if len(dataArray) == numMesh:
+                                return dataArray
+                                                                                                       
+            return -1
                          
 if __name__ == '__main__':
     mtr = McnpTallyReader()
@@ -171,7 +256,9 @@ if __name__ == '__main__':
 #    'tube':156, 'heat exchanger':166}
 #    
 #    print mtr.readSingleTally('dept.log', **tallys)
-    data = mtr.readKeff("fast.log")
+    
+    data = mtr.readDataIntoArray("meshtal",'24',1,"Rslt * Vol")
     print data
+    
     
     
