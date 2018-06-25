@@ -256,14 +256,14 @@ if __name__ == '__main__':
 #    'tube':156, 'heat exchanger':166}
 #    
 #    print mtr.readSingleTally('dept.log', **tallys)
-<<<<<<< HEAD
+
     
     data = mtr.readDataIntoArray("meshtal",'24',1,"Rslt * Vol")
     print data
-=======
+
     data = mtr.readKeff("fast.log")
     
->>>>>>> 4dc36bc5497a192595d4a638afb6b24e596326fe
+
     
     
     
