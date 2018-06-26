@@ -10,6 +10,19 @@ import numpy as np
 import csv
 
 def computePowerDesityDistribution(meshfilename, csvfilename, uncertainty=1.2):
+    """
+    Fuction name: 
+            computePowerDesityDistribution           
+    Fuction:
+            计算径向和轴向归一化功率密度分布和功率峰因子并输出到.csv文件中。
+    Input parameter:
+            fmesh文件路径和文件名：meshfilename
+            输出.csv文件名： csvfilename
+            总功率峰不确定度： uncertainty
+    Return:   
+            无
+    """
+    
     mtr = McnpTallyReader()
     neutronRadialEDeposit = np.array(mtr.readDataIntoArray(meshfilename, '14', 1, "Rslt * Vol", "Volume"))
     gammaRadialEDeposit = np.array(mtr.readDataIntoArray(meshfilename, '114', 1, "Rslt * Vol", "Volume"))
@@ -41,7 +54,7 @@ def computePowerDesityDistribution(meshfilename, csvfilename, uncertainty=1.2):
     
     axialPowerPeakFactor = np.max(RAEDensity[maxRadalPDIndex]) / np.max(radialPowerDensityDistri)
     
-    
+    #输出结果到文件
     csvfilename = csvfilename
     with open(csvfilename, 'wb') as fid:
         writer = csv.writer(fid)
