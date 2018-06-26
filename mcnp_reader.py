@@ -161,7 +161,7 @@ class McnpTallyReader(object):
             return None
         return results
         
-    def readDataIntoArray(self,meshtalFile,tallyNumber,group,dataType):
+    def readDataIntoArray(self, meshtalFile, tallyNumber, group, *dataType):
         """
         Fuction name: 
             readDataIntoArray           
@@ -183,10 +183,10 @@ class McnpTallyReader(object):
         nz = 0
         ngroup = 0
         nline = 0
-        totRow = 0 # 选择读取数据的列号
+        totColumn = 0 # 选择读取数据的列号
         numMesh = 0
         startline = 0
-                
+        nColumn = []        
         
         try:
             meshFid = open(meshtalFile,'r')
@@ -204,7 +204,7 @@ class McnpTallyReader(object):
                             readtag = False
                 if readtag:
                     lists = eachline.strip().split()
-                    if nx*ny*nz*ngroup*totRow == 0:                       
+                    if nx*ny*nz*ngroup*totColumn == 0:                       
                         if "X direction" in eachline or "R direction" in eachline:
                             nx =  len(eachline[eachline.find(':')+1 :].strip().split()) - 1
                             
@@ -228,21 +228,27 @@ class McnpTallyReader(object):
                             del lists[indx:indx+2]
                             lists[indx] = "Rslt * Vol" 
                             namelists.extend(lists)
-                            totRow = len(lists)
-                            if dataType not in namelists:
-                                print "Error 11010: The meshtal file have not the data type: %s"%dataType
-                                return -1                                              
+                            totColumn = len(lists)
+                            for ii in dataType:
+                               
+                                if ii not in namelists:
+                                    print "Error 11010: The meshtal file have not the data type: %s"%ii
+                                    return -1 
+                                nColumn.append(namelists.index(ii))                                             
                     else:
-                        nRow = namelists.index(dataType)
                         
                         nline = nline + 1
                         if lists and nline >= startline: 
-                            #print lists, readtag
-                            dataArray.append(lists[nRow])
-                            numMesh = nx * ny * nz
+                            datalists = [float(lists[ii]) for ii in nColumn]
+#                            print datalists
+                           
+                            dataArray.append(datalists)
                             
-                            if len(dataArray) == numMesh:
-                                return dataArray
+            numMesh = nx * ny * nz
+            if len(dataArray) == numMesh:
+                n = len(nColumn)
+                arrays = [[y[x] for y in dataArray] for x in range(n)]                                 
+                return arrays
                                                                                                        
             return -1
                          
@@ -258,10 +264,10 @@ if __name__ == '__main__':
 #    print mtr.readSingleTally('dept.log', **tallys)
 
     
-    data = mtr.readDataIntoArray("meshtal",'24',1,"Rslt * Vol")
+    data = mtr.readDataIntoArray("meshtal", '24', 1, "Rslt * Vol", "Volume", "Result")
     print data
 
-    data = mtr.readKeff("fast.log")
+#    data = mtr.readKeff("fast.log")
     
 
     
