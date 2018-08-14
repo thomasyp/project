@@ -418,9 +418,9 @@ class McnpTallyReader(object):
 if __name__ == '__main__':
     import yt
     groupname = []
-    mtr = McnpTallyReader()
-    mtr.readMdataIntoHDF5('flux.dat', 'tt.hdf5')
-    with h5py.File("tt.hdf5", "r") as f:
+    #mtr = McnpTallyReader()
+    #mtr.readMdataIntoHDF5('kcode.dat', 'kcode.hdf5')
+    with h5py.File("kcode.hdf5", "r") as f:
         for group in f:
             groupname.append(group)
         #print(groupname)
@@ -429,13 +429,13 @@ if __name__ == '__main__':
         z = [f[groupname[0]]['ZCoordinate'][0], f[groupname[0]]['ZCoordinate'][-1]]
         bbox = np.array([x, y, z])
         print(bbox)
-        d = dict(Flux=np.transpose(f[groupname[0]]["data"]), err=np.transpose(f[groupname[0]]['error']))
-        ds = yt.load_uniform_grid(d, d["Flux"].shape, length_unit="cm", bbox=bbox, nprocs=9)
-        p = yt.SlicePlot(ds, "x", ["Flux", 'err'], center='c')
-        p.set_cmap(field="Flux", cmap='jet')
+        d = dict(deposit=np.transpose(f[groupname[0]]["data"]), err=np.transpose(f[groupname[0]]['error']))
+        ds = yt.load_uniform_grid(d, d["deposit"].shape, length_unit="cm", bbox=bbox, nprocs=9)
+        p = yt.SlicePlot(ds, "x", ["deposit", 'err'], center='c')
+        p.set_cmap(field="deposit", cmap='jet')
         p.set_xlabel('x (cm)')
         p.set_ylabel('z (cm)')
-        p.set_log("Flux", False)
+        #p.set_log("deposit", False)
 #         p.set_zlim('err', 0, 1)
 #         # p.set_background_color('err','red')
         p.save()
