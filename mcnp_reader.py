@@ -298,7 +298,7 @@ class McnpTallyReader(object):
 
         return 0
 
-    def readMdataIntoHDF5(self, mdataFileName, hdfFileName):
+    def readMdataIntoHDF5(self, source, mdataFileName, hdfFileName):
         """
         Fuction name:
             readMdataIntoHDF5
@@ -329,6 +329,7 @@ class McnpTallyReader(object):
         readid = 0
         isNewTallySegment = True
         methType = []  # '1'表示rectangular mesh；'2'表示cylindrical mesh；'3'表示spherical meshes
+        grouplists = [] # group name in hdf5 file
 
         with open(mdataFileName, 'r') as fid, h5py.File(hdfFileName, "w") as hdfid:
             for eachline in fid:
@@ -389,7 +390,7 @@ class McnpTallyReader(object):
                         hdfid[grouplists[readid-1]].create_dataset('ZCoordinate', data=dd)
                     # 写入统计结果和误差
                     if isNewTallySegment == False and lenth == sum([nx, ny, nz, 2*nmeshs]):
-                        arrd =  [float(x) for x in data[sum([nx, ny, nz]):sum([nx, ny, nz, nmeshs])]] 
+                        arrd =  [float(x) * source for x in data[sum([nx, ny, nz]):sum([nx, ny, nz, nmeshs])]] 
                         dd = np.array(arrd).reshape(dimension[0], dimension[1], dimension[2])
                         hdfid[grouplists[readid-1]].create_dataset('data', data=dd)
                         arrd = [float(x) for x in data[sum([nx, ny, nz, nmeshs]):]] 
@@ -418,27 +419,30 @@ class McnpTallyReader(object):
 if __name__ == '__main__':
     import yt
     groupname = []
-    #mtr = McnpTallyReader()
-    #mtr.readMdataIntoHDF5('kcode.dat', 'kcode.hdf5')
-    with h5py.File("kcode.hdf5", "r") as f:
-        for group in f:
-            groupname.append(group)
-        #print(groupname)
-        x = [f[groupname[0]]['XCoordinate'][0], f[groupname[0]]['XCoordinate'][-1]]
-        y = [f[groupname[0]]['YCoordinate'][0], f[groupname[0]]['YCoordinate'][-1]]
-        z = [f[groupname[0]]['ZCoordinate'][0], f[groupname[0]]['ZCoordinate'][-1]]
-        bbox = np.array([x, y, z])
-        print(bbox)
-        d = dict(deposit=np.transpose(f[groupname[0]]["data"]), err=np.transpose(f[groupname[0]]['error']))
-        ds = yt.load_uniform_grid(d, d["deposit"].shape, length_unit="cm", bbox=bbox, nprocs=9)
-        p = yt.SlicePlot(ds, "x", ["deposit", 'err'], center='c')
-        p.set_cmap(field="deposit", cmap='jet')
-        p.set_xlabel('x (cm)')
-        p.set_ylabel('z (cm)')
-        #p.set_log("deposit", False)
-#         p.set_zlim('err', 0, 1)
-#         # p.set_background_color('err','red')
-        p.save()
+    mtr = McnpTallyReader()
+    source = 7.58318e18
+    mtr.readMdataIntoHDF5(source, 'kcord.dat', 'kcod.hdf5')
+    source = 7.00279e15
+    mtr.readMdataIntoHDF5(source, 'fixed.dat', 'fixe.hdf5')
+#     with h5py.File("kcode.hdf5", "r") as f:
+#         for group in f:
+#             groupname.append(group)
+#         #print(groupname)
+#         x = [f[groupname[0]]['XCoordinate'][0], f[groupname[0]]['XCoordinate'][-1]]
+#         y = [f[groupname[0]]['YCoordinate'][0], f[groupname[0]]['YCoordinate'][-1]]
+#         z = [f[groupname[0]]['ZCoordinate'][0], f[groupname[0]]['ZCoordinate'][-1]]
+#         bbox = np.array([x, y, z])
+#         print(bbox)
+#         d = dict(deposit=np.transpose(f[groupname[0]]["data"]), err=np.transpose(f[groupname[0]]['error']))
+#         ds = yt.load_uniform_grid(d, d["deposit"].shape, length_unit="cm", bbox=bbox, nprocs=9)
+#         p = yt.SlicePlot(ds, "x", ["deposit", 'err'], center='c')
+#         p.set_cmap(field="deposit", cmap='jet')
+#         p.set_xlabel('x (cm)')
+#         p.set_ylabel('z (cm)')
+#         #p.set_log("deposit", False)
+# #         p.set_zlim('err', 0, 1)
+# #         # p.set_background_color('err','red')
+#         p.save()
         
     # mtr.readLatticeData2dat('pow.log',fuel=36)
     # tallys = {'fuel in active region':6, "grapht in active region":16, \

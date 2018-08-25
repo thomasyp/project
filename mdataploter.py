@@ -18,48 +18,85 @@ read the ascii format mdata file and covert it to the hdf5 format file.
 import numpy as np
 import h5py
 import yt
-from mcnp_reader import McnpTallyReader 
+from mcnp_reader import McnpTallyReader
 
 groupname = []
-#mtr = McnpTallyReader()
-#mtr.readMdataIntoHDF5('kcode.dat', 'kcode.hdf5')
-with h5py.File("kcode.hdf5", "r") as f, h5py.File("fixed.hdf5", 'r') as g:
+coeffMeV2J = 1.6022e-13
+# mtr = McnpTallyReader()
+# source = 7.58318e18
+# mtr.readMdataIntoHDF5(source, 'kcord.dat', 'kcod.hdf5')
+# source = 7.00279e15
+# mtr.readMdataIntoHDF5(source, 'fixed.dat', 'fixe.hdf5')
+with h5py.File("kcod.hdf5", "r") as f, h5py.File("fixe.hdf5", 'r') as g:
     groupid = 0
     dataname = ['deposit', 'flux']
     for group in f:
         groupname.append(group)
 
-        #print(groupname)
-        x = [f[groupname[groupid]]['XCoordinate'][0], f[groupname[groupid]]['XCoordinate'][-1]]
-        y = [f[groupname[groupid]]['YCoordinate'][0], f[groupname[groupid]]['YCoordinate'][-1]]
-        z = [f[groupname[groupid]]['ZCoordinate'][0], f[groupname[groupid]]['ZCoordinate'][-1]]
+        # print(groupname)
+        x = [f[groupname[groupid]]['XCoordinate'][0],
+             f[groupname[groupid]]['XCoordinate'][-1]]
+        y = [f[groupname[groupid]]['YCoordinate'][0],
+             f[groupname[groupid]]['YCoordinate'][-1]]
+        z = [f[groupname[groupid]]['ZCoordinate'][0],
+             f[groupname[groupid]]['ZCoordinate'][-1]]
         bbox = np.array([x, y, z])
         if groupid == 0:
-            d = dict(deposit=np.transpose(f[groupname[groupid]]["data"]), derr=np.transpose(f[groupname[groupid]]['error']))
+            numpydata = np.array(f[groupname[groupid]]["data"])
+            numpydata = numpydata * coeffMeV2J   # convert MeV/cm2/s to W/cm2 
+            print('max pow desity: {:e}'.format(numpydata.max()))
+            print('min pow desity: {:e}'.format(numpydata.min()))
+            print('even pow desity: {:e}'.format(numpydata.mean()))      
+            d = dict(deposit=numpydata,
+                     derr=f[groupname[groupid]]['error'])
         if groupid == 1:
-            d = dict(flux=np.transpose(f[groupname[groupid]]["data"]), ferr=np.transpose(f[groupname[groupid]]['error']))
-        ds = yt.load_uniform_grid(d, d[dataname[groupid]].shape, length_unit="cm", bbox=bbox, nprocs=9)
-        
-       
+            numpydata = np.array(f[groupname[groupid]]["data"])
+            print('max flux: {:e}'.format(numpydata.max()))
+            print('min flux: {:e}'.format(numpydata.min()))
+            print('even flux: {:e}'.format(numpydata.mean()))
+            d = dict(flux=f[groupname[groupid]]["data"],
+                     ferr=f[groupname[groupid]]['error'])
+        ds = yt.load_uniform_grid(
+            d, d[dataname[groupid]].shape, length_unit="cm", bbox=bbox, nprocs=9)
+
         if groupid == 0:
-            p = yt.SlicePlot(ds, "x", [dataname[groupid],'derr'], center='c')
-            p.set_colorbar_label(dataname[groupid], "Deposit Energy (J/cm$^{3}$)")
+            p = yt.SlicePlot(ds, "y", [dataname[groupid], 'derr'], center='c')
+            p.set_colorbar_label(
+                dataname[groupid], "Deposit Energy (W/cm$^{3}$)")
             p.set_colorbar_label("derr", "Relative Error")
         if groupid == 1:
-            p = yt.SlicePlot(ds, "x", [dataname[groupid],'ferr'], center='c')
-            p.set_colorbar_label(dataname[groupid], "Neutron Flux (n/cm$^{2}$/s)")
+            p = yt.SlicePlot(ds, "y", [dataname[groupid], 'ferr'], center='c')
+            p.set_colorbar_label(
+                dataname[groupid], "Neutron Flux (n/cm$^{2}$/s)")
             p.set_colorbar_label("ferr", "Relative Error")
         #p.set_log("deposit", False)
 #         p.set_zlim('err', 0, 1)
 #         # p.set_background_color('err','red')
         p.set_cmap(field=dataname[groupid], cmap='jet')
-        points = [[1,1,0],[1,-1,0],[0.5,0.5,-1]]
+
+        points = np.array(
+            [
+            [[0.,  -0.,  -10.], [-90.,  0.,  -10.], [-5., -5., -40.]],
+            [[9.,  -0.,  -12.], [-90.,  0.,  -12.], [-5., -5., -40.]],
+            [[0.,  -0.,  10.], [-90.,  0.,  10.], [-5., -5., 5.]],
+            [[9.,  -0.,  12.], [-90.,  0.,  12.], [-5., -5., 5.]],
+            [[0.,  -0.,  -10.], [-0.,  0.,  -5.], [-5., -5., -8.]],
+            [[0.,  -0.,  10.], [-0.,  0.,  5.], [-5., -5., 8.]],
+            [[-8.6607,0,0],[0.,  0.,  -5],[-4,-5,-2.5]],
+            [[-8.6607,0,0],[0.,  0.,  5],[-4,-5,2.5]],
+            [[9.,  -0.,  -12.], [9.,  0.,  -5.], [5., -5., -10.]],
+            [[9.,  -0.,  12.], [9.,  0.,  5.], [5., -5., 10.]],
+            [[8.66,0,5],[90,0,5],[50,-5,2.5]],
+            [[8.66,0,-5],[90,0,-5],[50,-5,-2.5]],
+            [[8.66,0,-5],[0,0,0],[2.5,-5,-2.5]],
+            [[8.66,0,5],[0,0,0],[2.5,-5,2.5]]
+            ])
+
         p.annotate_triangle_facets(points, plot_args={"colors": 'black'})
         p.set_xlabel('x (cm)')
         p.set_ylabel('z (cm)')
         groupid += 1
-        
-        
+
         p.save()
     groupname = []
     groupid = 0
@@ -67,33 +104,51 @@ with h5py.File("kcode.hdf5", "r") as f, h5py.File("fixed.hdf5", 'r') as g:
     for group in g:
         groupname.append(group)
 
-        #print(groupname)
-        x = [g[groupname[groupid]]['XCoordinate'][0], g[groupname[groupid]]['XCoordinate'][-1]]
-        y = [g[groupname[groupid]]['YCoordinate'][0], g[groupname[groupid]]['YCoordinate'][-1]]
-        z = [g[groupname[groupid]]['ZCoordinate'][0], g[groupname[groupid]]['ZCoordinate'][-1]]
+        # print(groupname)
+        x = [g[groupname[groupid]]['XCoordinate'][0],
+             g[groupname[groupid]]['XCoordinate'][-1]]
+        y = [g[groupname[groupid]]['YCoordinate'][0],
+             g[groupname[groupid]]['YCoordinate'][-1]]
+        z = [g[groupname[groupid]]['ZCoordinate'][0],
+             g[groupname[groupid]]['ZCoordinate'][-1]]
         bbox = np.array([x, y, z])
         if groupid == 0:
-            d = dict(fixeddeposit=np.transpose(g[groupname[groupid]]["data"]), fixedderr=np.transpose(g[groupname[groupid]]['error']))
+            numpydata = np.array(g[groupname[groupid]]["data"])
+            numpydata = numpydata * coeffMeV2J 
+            print('max pow desity: {:e}'.format(numpydata.max()))
+            print('min pow desity: {:e}'.format(numpydata.min()))
+            print('even pow desity: {:e}'.format(numpydata.mean()))            
+            d = dict(fixeddeposit=numpydata,
+                     fixedderr=g[groupname[groupid]]['error'])
         if groupid == 1:
-            d = dict(fixedflux=np.transpose(g[groupname[groupid]]["data"]), fixedferr=np.transpose(g[groupname[groupid]]['error']))
-        ds = yt.load_uniform_grid(d, d[dataname[groupid]].shape, length_unit="cm", bbox=bbox, nprocs=9)
-        
-       
+            numpydata = np.array(g[groupname[groupid]]["data"])
+            print('max flux: {:e}'.format(numpydata.max()))
+            print('min flux: {:e}'.format(numpydata.min()))
+            print('even flux: {:e}'.format(numpydata.mean()))
+            d = dict(fixedflux=g[groupname[groupid]]["data"],
+                     fixedferr=g[groupname[groupid]]['error'])
+        ds = yt.load_uniform_grid(
+            d, d[dataname[groupid]].shape, length_unit="cm", bbox=bbox, nprocs=9)
+
         if groupid == 0:
-            p = yt.SlicePlot(ds, "x", [dataname[groupid],'fixedderr'], center='c')
-            p.set_colorbar_label(dataname[groupid], "Deposit Energy (J/cm$^{3}$)")
+            p = yt.SlicePlot(
+                ds, "y", [dataname[groupid], 'fixedderr'], center='c')
+            p.set_colorbar_label(
+                dataname[groupid], "Deposit Energy (W/cm$^{3}$)")
             p.set_colorbar_label("fixedderr", "Relative Error")
         if groupid == 1:
-            p = yt.SlicePlot(ds, "x", [dataname[groupid],'fixedferr'], center='c')
-            p.set_colorbar_label(dataname[groupid], "Neutron Flux (n/cm$^{2}$/s)")
+            p = yt.SlicePlot(
+                ds, "y", [dataname[groupid], 'fixedferr'], center='c')
+            p.set_colorbar_label(
+                dataname[groupid], "Neutron Flux (n/cm$^{2}$/s)")
             p.set_colorbar_label("fixedferr", "Relative Error")
         #p.set_log("deposit", False)
 #         p.set_zlim('err', 0, 1)
 #         # p.set_background_color('err','red')
+        p.annotate_triangle_facets(points, plot_args={"colors": 'black'})
         p.set_cmap(field=dataname[groupid], cmap='jet')
         p.set_xlabel('x (cm)')
         p.set_ylabel('z (cm)')
         groupid += 1
-        
-        
+
         p.save()
