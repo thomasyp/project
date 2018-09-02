@@ -179,6 +179,13 @@ def deleteIntermediateFiles(inp):
         exit()
 
 def cleanup(inp):
+    """
+        Function: Clean up mcnp output file including 'out','runtpe' and 'srctp'.
+        Parameters: inp: the name of mcnp input file.
+        Return: none
+    
+    """
+
     if os.path.isfile(inp+'s'):
         os.remove(inp+'s')
     if os.path.isfile(inp+'r'):
@@ -187,6 +194,13 @@ def cleanup(inp):
         os.remove(inp+'o')
 
 def readKeff(inp):
+    """
+        Function: Read keff,dev and average Num of neutron per Fissionor from mcnp output file.
+        Parameters: inp: the name of mcnp output file.
+        Return: kef,dev,averageNumNperFission
+    
+    """
+
     with open(inp,'r') as f:
         for line in f:
             if 'final estimated' in line:
@@ -197,12 +211,40 @@ def readKeff(inp):
     return kef,dev,averageNumNperFission
 
 def manageOutputfiles(loopout, loopin):
+    """
+        Function: Rename the mcnp or mcnpx meshtally files.
+        Parameters: 1.loopout: outside loop num.
+                    2.loopin: inside loop num.
+        Return: none
+    
+    """
+
     if os.path.isfile('meshtal'):
             os.rename('meshtal','meshtal'+str(loopout+1)+'-'+str(loopin+1))
     if os.path.isfile('mdata'):
             os.rename('mdata','mdata'+str(loopout+1)+'-'+str(loopin+1))
 
-def readResults(inp, mat, matt, mattally, vol, power, keff, aveNpFiss, numNperP, loopout, loopin):
+def readResults(inp, mat, matt, mattally, power, keff, aveNpFiss, numNperP, loopout, loopin):
+    """
+        Function: Read tally results from mcnp output file and compute the one group crosssection,flux, 
+        the beam intensity of accelerator and the importance of external neutron source.
+        Parameters: 1. inp: the name of mcnp output file.
+                    2. mat: the num of material card which is used to burnup.
+                    3. matt:
+                    4. mattaly:
+                    5. power: thermal power of reactor
+                    6. keff
+                    7. aveNpFiss: average Num of neutron per Fission.
+                    8. numNperP: neutron yield per proton
+                    9. loopout: outside loop num. 
+                    10. loopin: inside loop num. 
+        Return: 1. xs:  one group crosssection
+                2. flux: a flux list of different burnup zone.
+                3. beamIntensity: the beam intensity of accelerator.
+                4. neutronImportance: the importance of external neutron source
+    
+    """
+
     fom = []##flux in MCNP
     flag1 = False
     flag2 = False
@@ -305,6 +347,14 @@ def write2file(filename, openMode, lines):
         f.writelines('\n')
 
 def createFixedInputCard(inp, out):
+    """
+        Function: create fixed-source mode mcnp card.
+        Parameters: 1.inp: MOBAT_ADS input file name. 
+                    2.out: fixed-source mode mcnp input file name.
+        Return: none
+    
+    """
+
     shadow = False
     with open(inp, 'r') as fin, open(out, 'w') as fout:
         for eachline in fin:
@@ -322,6 +372,14 @@ def createFixedInputCard(inp, out):
                 fout.write(eachline)
 
 def createKcodeInputCard(inp, out, cutMforKcodeMode):
+    """
+        Function: create kcode mode mcnp card.
+        Parameters: 1.inp: MOBAT_ADS input file name. 
+                    2.out: kcode mode mcnp input file name.
+        Return: none
+    
+    """
+
     shadow = False
     hasKsrc = False
 
@@ -385,7 +443,20 @@ def deleteNotMcnpCard(inp, out):
     return ''.join(words)    
 
 def write2resultfile(loopout, loopin, kef, dev, avgNperFiss, beamIntensity, neutronImportance):
-    with open('MOBATADSOUT', 'a') as f:
+    """
+        Function: write the calculation results into file 'MOBATADSOUT'.
+        Parameters: 1.loopout: outside loop num. 
+                    2. loopin: inside loop num. 
+                    3. kef: keff of the problem.
+                    4. dev: Calculation deviation of keff
+                    5. avgNperFiss: average Num of neutron per Fission.
+                    6. beamIntensity: the beam intensity of accelerator.
+                    7. neutronImportance: the importance of external neutron source
+        Return: none
+    
+    """
+
+    with open('MOBATADS.OUT', 'a') as f:
             if loopout == 0 and loopin == 0:
                 strs = '{:^9} {:^12} {:^12} {:^20} {:^20} {:^20}\n'.format('Cycle:', 'Keff', 'dev', 'avgNperFiss', 'Beam Intensity (mA)', 'Neutron Importance')
                 f.writelines(strs)
@@ -8331,7 +8402,7 @@ inp=args.inp
 node=args.node
 ppn=args.ppn
 """
-inp='fixip'
+inp='fixip2'
 if not os.path.isfile(inp):
     print('error!!!,there is no '+inp+' file!')
     exit()
@@ -8755,7 +8826,7 @@ for loopout in range(0,len(power)):
         
         manageOutputfiles(loopout, loopin)  
         
-        (xs, flux, beamIntensity, neutronImportance) = readResults(outputfile, mat, matt, mattally, vol, float(power[loopout]), kef, avgNperFiss, 20, loopout, loopin)
+        (xs, flux, beamIntensity, neutronImportance) = readResults(outputfile, mat, matt, mattally, float(power[loopout]), kef, avgNperFiss, 20, loopout, loopin)
         print('flux is:')
         fluxstrs = ['{:.3e}'.format(x) for x in flux]
         print(fluxstrs)
