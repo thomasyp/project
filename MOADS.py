@@ -8393,7 +8393,7 @@ print()
 #inp 
 #node 
 #ppn
-"""
+
 parser=argparse.ArgumentParser(description='input file name,node and ppn')
 parser.add_argument('-n',action="store",dest="node",type=int,default=1)
 parser.add_argument('-p',action="store",dest="ppn",type=int,default=1)
@@ -8404,8 +8404,8 @@ print('inputfile=%s' %args.inp,'node=%s' %args.node,'ppn=%s' %args.ppn)
 inp=args.inp
 node=args.node
 ppn=args.ppn
-"""
-inp='adsb1'
+
+
 if not os.path.isfile(inp):
     print('error!!!,there is no '+inp+' file!')
     exit()
@@ -8415,8 +8415,8 @@ if not os.path.isdir(filedir):
     os.mkdir(filedir)
 else:
     del_file(filedir)
-os.system('copy '+inp+' '+filedir+'\\'+inp)
-#os.system('cp /home/zhuguifeng/xsdir '+filedir+'/xsdir')
+os.system('cp '+inp+' '+filedir+'/'+inp)
+os.system('cp /home/zhuguifeng/xsdir '+filedir+'/xsdir')
 os.chdir(filedir)
 
 DECAY()
@@ -8801,7 +8801,7 @@ for loopout in range(0, numofOutloop):
         print()
         print('             ********KCODE MODE BEGIN       ********')
         print()
-        os.system('mcnp5 n='+inp)
+        os.system('  mpirun -r ssh -np '+str(int(node*ppn))+' mcnp5.mpi n='+inp)
         if os.path.isfile(inp+'o'):
             print('MCNP5 run finished!')
         else:
@@ -8823,7 +8823,7 @@ for loopout in range(0, numofOutloop):
         print()
         print('             ********FIXED-SOURCE MODE BEGIN       ********')
         print()
-        os.system('mcnp5 n='+inp)
+        os.system('  mpirun -r ssh -np '+str(int(node*ppn))+' mcnp5.mpi n='+inp)
         
         if os.path.isfile(inp+'o'):
             print('MCNP5 run finished!')
@@ -9075,6 +9075,6 @@ os.system('rm -rf PWRU.LIB')
 os.system('rm -rf TAPE*')
 os.system('rm -rf tape*')
 print()
-print('MOBAT.py is terminated successfully!')
+print('MOADS.py is terminated successfully!')
 exit()
 
