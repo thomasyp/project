@@ -41,8 +41,8 @@ def rank(n,mat):
     y=n
     for i in range(0,len(mat)):
         if y >= len(mat[i]):
-            y=y-len(mat[i])
-            x+=1
+            y = y - len(mat[i])
+            x += 1
     return x,y
 
 def rerank(x,y,mat):
@@ -53,56 +53,50 @@ def rerank(x,y,mat):
     return n
         
 def readinf(inp):
-    n=0
-    s=0
-    m=0
-    p=0
-    t=-1
-    power=[]
-    newfr=[]
-    extime=[]
-    vol=[]
-    intime=[]
-    cycle=[]
-    mat=[]
-    reloads=0
+    n = 0
+    s = 0
+    m = 0
+    p = 0
+    t = -1
+    npp = 0
+    power = []
+    newfr = []
+    extime = []
+    vol = []
+    intime = []
+    cycle = []
+    mat = []
+    reloads = 0
+    addnux = 1
     #f=open(inp,'r',encoding='gbk')
     f=open(inp,'r')
     inpfile=f.readlines()
     for line in inpfile:
         t+=1
-        lines=line.lower().split()
-        if bool(lines):
-            if 'power'==''.join(lines[0]):
-                A=' '.join(lines[1:])
-                a=' '.join(A.split(','))
-                power=a.split()
-            if 'time'==''.join(lines[0]):
-                A=' '.join(lines[1:])
-                a=' '.join(A.split(','))
-                intime=a.split()
-            if 'cycle'==''.join(lines[0]):
-                A=' '.join(lines[1:])
-                a=' '.join(A.split(','))
-                cycle=a.split()
-            if 'extime'==''.join(lines[0]):
-                A=' '.join(lines[1:])
-                a=' '.join(A.split(','))
-                extime=a.split()
-            if 'mat'==''.join(lines[0]):
+        lists = line.strip().split()
+        if bool(lists):
+            if re.match('power', lists[0], re.I) is not None:
+                power = lists[1:]
+            if re.match('time', lists[0], re.I) is not None:
+                intime = lists[1:]
+            if re.match('cycle', lists[0], re.I) is not None:
+                cycle = lists[1:]
+            if re.match('extime', lists[0], re.I) is not None:
+                extime = lists[1:]
+            if re.match('mat', lists[0], re.I) is not None:
                 n+=1
                 mat.append([])
-                A=' '.join(lines[1:])
-                a=' '.join(A.split(','))
-                mat[n-1]=a.split()
-            if 'vol'==''.join(lines[0]):
+                mat[n-1] = lists[1:]
+            if re.match('vol', lists[0], re.I) is not None:
                 s+=1
                 vol.append([])
-                A=' '.join(lines[1:])
-                a=' '.join(A.split(','))
-                vol[s-1]=a.split()
-            if 'reload'==''.join(lines[0]):
+                vol[s-1] = lists[1:]
+            if  re.match('reload', lists[0], re.I) is not None:
                 reloads=1
+            if  re.match('addnux', lists[0], re.I) is not None:
+                addnux = lists[1]
+            if  re.match('npp', lists[0], re.I) is not None:
+                npp = float(lists[1])
     f.close()
     if power==[]:
         print('error!!!,no power card!')
@@ -141,7 +135,13 @@ def readinf(inp):
         
     else:
         print('error!!!,len(power)!=len(mat) or no mat card!')
-    return power,vol,mat,cycle,extime,intime,reloads
+    if npp == 0:
+        print('error!!!,no npp card or num of neutrons per proton is zero!')
+        exit()
+    else:
+        strs = 'The number of neutrons produced by one proton is :{:.2f}'.format(npp)
+        print(strs)
+    return power,vol,mat,cycle,extime,intime,reloads,addnux,npp
 
 def mcnpmpi(inp,node,ppn):
     lines=['#!/bin/bash\n']
@@ -224,7 +224,7 @@ def manageOutputfiles(loopout, loopin):
     if os.path.isfile('mdata'):
             os.rename('mdata','mdata'+str(loopout+1)+'-'+str(loopin+1))
 
-def readResults(inp, mat, matt, mattally, power, keff, aveNpFiss, numNperP, loopout, loopin):
+def readResults(inp, mat, matt, mattally, power, keff, numNperP, loopout, loopin):
     """
         Function: Read tally results from mcnp output file and compute the one group crosssection,flux, 
         the beam intensity of accelerator and the importance of external neutron source.
@@ -272,9 +272,11 @@ def readResults(inp, mat, matt, mattally, power, keff, aveNpFiss, numNperP, loop
             # read fission neutron
             if len(lists) > 3:
                 if lists[0] == 'prompt' and lists[1] == 'fission':
-                    promptFission = float(lists[3])
+                    promptFissionNeurton = float(lists[3])
+                    totFission = float(lists[9])
                 if lists[0] == 'delayed' and lists[1] == 'fission':
-                    delayedFission = float(lists[3])
+                    delayedFissionNeurton = float(lists[3])
+                    totFissionNeutron = promptFissionNeurton + delayedFissionNeurton
             # read tally
             if '1tally' in line and 'nps' in line:
                 flag1 = True
@@ -290,7 +292,7 @@ def readResults(inp, mat, matt, mattally, power, keff, aveNpFiss, numNperP, loop
                     ContinuousEmptyline = 0
                     if re.match('\d\.\d{5}E[+-]\d{2}', lists[0]) is not None and len(lists) > 1:
                         data.append(lists[0])
-                # 判断计数区是否结束
+                # 判断计数区是否结�?
                 if ContinuousEmptyline == 2: #连续两个空行即为结束
                     flag1 = False
                     flag2 = False 
@@ -302,20 +304,24 @@ def readResults(inp, mat, matt, mattally, power, keff, aveNpFiss, numNperP, loop
                             Z = float(mattally[mattallyNum][i*2][0:-4])
                             A = float(mattally[mattallyNum][i*2][-4:-1])
                             
-                            Q=0.00129927 * Z**2 * A**0.5+33.12
-                            powwer[mattallyNum]=float(powwer[mattallyNum])+float(data[i*4+4])*float(mattally[mattallyNum][i*2+1])*Q*0.6022
+                            Q = 0.00129927 * Z**2 * A**0.5+33.12
+                            powwer[mattallyNum] = float(powwer[mattallyNum]) + float(data[i*4+4]) * float(mattally[mattallyNum][i*2+1]) * Q * 0.6022 / totFission
                         strs = ' {:.3E} {:.3E} {:.3E} {:.3E}'.format(float(data[i*4+1])/nf, float(
                             data[i*4+2])/nf, float(data[i*4+3])/nf, float(data[i*4+4])/nf)
                         xs[mattallyNum][i] = xs[mattallyNum][i] + strs
-                    data = []                            
+                    data = []                           
     
-    neutronImportance = (1 - keff) / keff * (promptFission + delayedFission)
+    neutronImportance = (1 - keff) / keff * totFissionNeutron
+    aveNpFiss = totFissionNeutron / totFission
+    lines = str(loopout)+'-'+str(loopin) + ':' + str(aveNpFiss) + '\n'
+    write2file('aveNperfission', 'a', lines)
 
     powerr=0.0
     #print(len(matt))
     for i in range(0,len(matt)):
         powerr=powerr+powwer[i]
     ##flux
+    write2file('powerr', 'a', str(powerr)+'\n')
     flux=[]
     beamIntensity = power * aveNpFiss * (1./ keff - 1.) / powerr / numNperP / neutronImportance * A2mA #unit mA
     sourceStrength = beamIntensity / A2mA / singleProtonCharge * numNperP
@@ -332,12 +338,15 @@ def readResults(inp, mat, matt, mattally, power, keff, aveNpFiss, numNperP, loop
     write2file('POWER', 'a', strs2+'\n')
     
     lines=''
+    n = 0
     for i in xs:
+        (x,y)=rank(n,mat)                
+        lines = lines + 'm' + mat[x][y] + '\n'
         for j in i:
             strs = '{}\n'.format(j)
             lines = lines + strs
-        lines = lines + '\n'
-    write2file('crossSection', 'w', lines)   
+        n += 1
+    write2file('crossSection'+str(loopout)+'-'+str(loopin), 'w', lines)   
 
     return xs, flux, beamIntensity, neutronImportance 
 
@@ -430,11 +439,11 @@ def deleteNotMcnpCard(inp, out):
             else:
                 lists = eachline.strip().split()    
                 if eachline[0].isspace() is False:
-                    # 在data card 最开头写入print 卡
+                    # 在data card 最开头写入print �?
                     if spaceline == 2:
                         fout.write('print\n')
                         spaceline = None
-                    if re.match('power|time|extime|cycle|mat|vol|end|print', lists[0], re.I) is not None:
+                    if re.match('power|time|extime|cycle|mat|vol|end|print|addnux|npp', lists[0], re.I) is not None:
                         pass                
                     else:
                         fout.write(eachline)
@@ -564,7 +573,7 @@ def writetape9(xs):
                     y=xs[i][j].split()
                     z=line.split()
                     if z[1]==y[0]:
-                        lines[m]=lines[m][0:6]+xs[i][j]+lines[m][52:]
+                        lines[m]=lines[m][0:6]+xs[i][j]+' 0.0       '+lines[m][63:]
         s=open('xs-'+str(i),'w')
         s.writelines(decaylib)
         s.writelines(lines)
@@ -8430,7 +8439,7 @@ print("                     *********Reading Information********")
 print()
 print()
 #power,vol,mat,cycle,extime,intime,reloads
-(power,vol,mat,cycle,extime,intime,reloads)=readinf(inp)
+(power, vol, mat, cycle, extime, intime, reloads, addnux, npp)=readinf(inp)
 
 print()
 print()
@@ -8503,10 +8512,10 @@ for i in range(0,len(matt)):
                        mato[i][j]=int(matt[i][j][0:-4])*2
                for j in range(1,len(matt[i]),2):
                     if float(matt[i][j])>0:
-                        if int(matt[i][j-1]) > 900000: # 重金属质量计算
+                        if int(matt[i][j-1]) > 900000: # 重金属质量计�?
                             matmhm[i]=float(matmhm[i])+float(matt[i][j])*int(mato[i][j-1])
                         mate[i]=float(mate[i])+float(matt[i][j])
-                        matm[i]=float(matm[i])+float(matt[i][j])*int(mato[i][j-1]) # 总质量计算
+                        matm[i]=float(matm[i])+float(matt[i][j])*int(mato[i][j-1]) # 总质量计�?
                     else:
                         if int(matt[i][j-1]) > 900000:
                             matmhm[i]=float(matmhm[i])-float(matt[i][j])
@@ -8556,7 +8565,7 @@ with open(inp,'r') as f:
                 if lines[1]==mat[x][y]:
                 
                     cell[i].append(lines[0])
-                    # cell card 中将材料密度转为粒子数密度
+                    # cell card 中将材料密度转为粒子数密�?
                     if float(lines[2])>0:
                         matd[i]=float(lines[2])
                     else:
@@ -8614,13 +8623,13 @@ for j in range(0,len(matt)):
 if os.path.isfile(inp+'orig'):
     os.remove(inp+'orig')
 os.rename(inp,inp+'orig')
-word = deleteNotMcnpCard(inp+'orig', 'mcnp'+inp)
+word = deleteNotMcnpCard(inp+'orig', 'mcnpinp')
 print()
 print('non-mcnp5 cards are deleted!')
 print()
 
 #nulear table-------------------------------------------------------------
-table=['902320','902330','902340','912320','912330','922320','922330','922340'
+table1 = ['902320','902330','902340','912320','912330','922320','922330','922340'
        ,'922350','922360','922370','922380','922390','932360','932370','932380','932390'
        ,'942360','942370','942380','942390','942400','942410','942420','942430','942440'
        ,'952410','952420','952430','952440','962420','962430','962440','962450','962460'
@@ -8636,6 +8645,98 @@ table=['902320','902330','902340','912320','912330','922320','922330','922340'
        ,'561380','581400','581410','581420','581440','591430','611510','621480','621530'
        ,'621540','631520','631560','641580','531350','952421','952441','521271','521291'
        ,'611481','481151','471101']
+table2 = ['902270','902280','902290','902300','902320','902330','902340'
+       ,'912310','912320','912330'
+       ,'922320','922330','922340','922350','922360','922370','922380','922390','922400'
+       ,'932350','932360','932370','932380','932390'
+       ,'942360','942370','942380','942390','942400','942410','942420','942430','942440','942460'
+       ,'952410','952420','952430','952440','952421','952441'
+       ,'962410','962420','962430','962440','962450','962460','962470','962480'
+       ,'972490'
+       ,'982490','982500','982510','982520'
+       ,'892270','892260','892250'
+       ,'882260','882250','882240','882230'
+       ,'832090'
+       ,'822080','822070','822060','822040'
+       ,'802040','802020','802010','802000','801990','801980','801960'
+       ,'791970'
+       ,'771930','771910'
+       ,'751870','751850'
+       ,'741860','741840','741830','741820'
+       ,'731810'
+       ,'721800','721790','721780','721770','721760','721740'
+       ,'711760','711750'
+       ,'681700','681680','681670','681660','681640','681620'
+       ,'671660','671650'
+       ,'661640','661630','661620','661610','661600','661580','661560'
+       ,'651600','651590'
+       ,'641600','641580','641570','641560','641550','641540','641520'
+       ,'631570','631560','631550','631540','631530','631520','631510'
+       ,'621540','621530','621520','621510','621500','621490','621480','621470','621440'
+       ,'611510','611490','611480','611470','611481'
+       ,'601500','601480','601470','601460','601450','601440','601430','601420'
+       ,'591430','591420','591410'
+       ,'581440','581430','581420','581410','581400'
+       ,'571400','571390'
+       ,'561400','561380','561370','561360','561350','561340'
+       ,'551370','551360','551350','551340','551330'
+       ,'541360','541350','541340','541330','541320','541310','541300','541290','541280','541260','541240'
+       ,'531350','531310','531300','531290','531270'
+       ,'521320','521300','521290','521280','521270','521260','521250','521240','521230','521220','521200','521271','521291'
+       ,'511260','511250','511240','511230','511210'
+       ,'501260','501250','501240','501230','501220','501200','501190','501180','501170','501160','501150','501140','501120'
+       ,'491150','491130'
+       ,'481160','481150','481140','481130','481120','481110','481100','481080','481060','481151'
+       ,'471110','471090','471070','471101'
+       ,'461100','461080','461070','461060','461050','461040','461020'
+       ,'451050','451030'
+       ,'441050','441040','441030','441020','441010','441000','440990','440980','440960'
+       ,'430990'
+       ,'421000','420990','420980','420970','420960','420950','420940','420920'
+       ,'410950','410940','410930'
+       ,'400960','400950','400940','400930','400920','400910','400900'
+       ,'390910','390900','390890'
+       ,'380900','380890','380880','380870','380860','380840'
+       ,'370870','370860','370850'
+       ,'360860','360850','360840','360830','360820','360800','360780'
+       ,'350810','350790'
+       ,'340820','340800','340780','340790','340770','340760','340740'
+       ,'330750','330740'
+       ,'320760','320740','320730','320720','320700'
+       ,'310710','310690'
+       ,'290650','290630'
+       ,'280640','280620','280610','280600','280590','280580'
+       ,'270590','270580'
+       ,'260580','260570','260560','260540'
+       ,'250550'
+       ,'240540','240530','240520','240500'
+       ,'220500','220490','220480','220470','220460'
+       ,'210450'
+       ,'200480','200460','200440','200430','200420','200400'
+       ,'190410','190400','190390'
+       ,'180400','180380','180360'
+       ,'170370','170350'
+       ,'160360','160340','160330','160320'
+       ,'150310'
+       ,'140300','140290','140280'
+       ,'130270'
+       ,'120260','120250','120240'
+       ,'110230'
+       ,'90190'
+       ,'80170','80160'
+       ,'70150','70140'
+       ,'60000'
+       ,'50110','50100'
+       ,'40090'
+       ,'30070','30060'
+       ,'20040','20030'
+       ,'10030','10020','10010'
+       ]
+if addnux == '2':
+    table = table2
+else:
+    table = table1
+
 mattally=[[]]
 for i in range(0,len(matt)-1):
     mattally.append([])
@@ -8645,7 +8746,7 @@ for i in range(0,len(matt)):
         (x,y)=rank(i,vol)
         mattally[i][k]=float(matt[i][k])*float(vol[x][y])/0.6022
     for k in range(0,len(table)):
-        if '%.7e'%float(matmhm[i])!='0.0000000e+00':
+        if '%.7e'%float(matmhm[i])!='0.0000000e+00':  #含重金属的材�?
             if table[k] not in matt[i]:
                 mattally[i].extend([table[k],'1.00000E-36'])
 
@@ -8667,7 +8768,7 @@ for i in range(0,len(matt)-1):
     mtally.append([])
 m=999
 n=0
-cutMforKcodeMode = 1000
+cutMforKcodeMode = 0
 for i in range(0,len(matt)):
     n+=1
     fcNumlists.append(str(n))
@@ -8684,15 +8785,18 @@ for i in range(0,len(matt)):
         m+=1
         while 'm'+str(m) in word.lower().split():
             m+=1
-            cutMforKcodeMode = m
-        if int(mattally[i][j][0:-4])>89:
+            if cutMforKcodeMode == 0:
+                cutMforKcodeMode = m
+        if cutMforKcodeMode == 0:
+                cutMforKcodeMode = m
+        if int(mattally[i][j][0:-4])>87:
             mtally[i].append('      (1 '+str(m)+' (102) (16) (17) (-6))\n')  #102:(n,g);16:(n,2n);17:(n,3n);-6:(total fission)
         else:
             if int(mattally[i][j])==30060:
                 mtally[i].append('      (1 '+str(m)+' (102) (16) (105) (103))\n') #105:(n,t);103:(n,p)
             else:
                 mtally[i].append('      (1 '+str(m)+' (102) (16) (107) (103))\n') #107:(n,a)
-        ########## 激发态核素 #################################        
+        ########## 激发态核�?#################################        
         if int(mattally[i][j])==952421:
             lines.append('m'+str(m)+'  95542.10c    1.\n')
         elif int(mattally[i][j]) == 952441:
@@ -8727,9 +8831,17 @@ for i in range(0,len(matt)):
     for j in range(0,len(mtally[i])):
         lines.append(mtally[i][j])
     lines.append('sd'+fm[i]+'4      '+str(vol[x][y])+'\n')
-f=open('mcnp'+inp,'a')
-f.writelines(lines)
-f.close()
+with open('mcnpinp', 'r') as fid1, open('mcnp'+inp, 'w') as fid2:
+    for line in fid1:
+        fid2.writelines(line)
+    lists = line.strip().split()
+    if lists:
+        fid2.writelines('\n')
+        fid2.writelines(lines)
+    else:
+        fid2.writelines(lines)
+os.remove('mcnpinp')
+
 
 ##print()
 ##for i in range(0,len(mtally)):
@@ -8774,7 +8886,7 @@ for i in range(0,len(matt)):
     shutil.copyfile('tape4-'+str(i),str(i)+'PBTAPE4')
 h.writelines('\n')
 h.close()
-#  循环开始
+#  循环开�?
 numofOutloop = len(power)
 for loopout in range(0, numofOutloop):
     if loopout == 0:
@@ -8797,6 +8909,7 @@ for loopout in range(0, numofOutloop):
         
         cleanup(inp)
         # kinpcode mode
+        #print("cut mcord for kcode:", cutMforKcodeMode)
         createKcodeInputCard('mcnp'+inp, inp, cutMforKcodeMode)
         print()
         print('             ********KCODE MODE BEGIN       ********')
@@ -8833,7 +8946,7 @@ for loopout in range(0, numofOutloop):
         
         manageOutputfiles(loopout, loopin)  
         
-        (xs, flux, beamIntensity, neutronImportance) = readResults(outputfile, mat, matt, mattally, float(power[loopout]), kef, avgNperFiss, 20, loopout, loopin)
+        (xs, flux, beamIntensity, neutronImportance) = readResults(outputfile, mat, matt, mattally, float(power[loopout]), kef, npp, loopout, loopin)
         print('flux is:')
         fluxstrs = ['{:.3e}'.format(x) for x in flux]
         print(fluxstrs)
