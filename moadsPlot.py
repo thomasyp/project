@@ -1,5 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import argparse
+import os  
 
 #  MOLARMASS= {'902270':227,'902280':228,'902290':229,'902300':230,'902320':232.03805,'902330':233,'902340':234
 #        ,'912310':231.035879,'912320':232,'912330':233
@@ -170,10 +172,11 @@ class Moadsploter(object):
         defaultDic['linewidth'] = 2.0
         defaultDic['xlim'] = [self.results.iloc[0,1], self.results.iloc[-1,1]]
         defaultDic['logx'] = False
-        defaultDic['marker'] = 'o'
+        
         
         if 'yunit' in kw.keys():
             yunit = kw.pop('yunit')
+            print(type(yunit))
             
         for key, value in defaultDic.items():
             if key in kw.keys():
@@ -205,9 +208,20 @@ class Moadsploter(object):
         fig.savefig(figname)
 
 if __name__ == '__main__':
+    path = os.path.abspath('.')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("folder", nargs='?', help="MOADS results folder.")
+    parser.add_argument("nuclides", nargs='+', help="Nuclides to plot.")
+    parser.add_argument("--niylim", nargs='+', help="ylim of Neutron Importance plot.", type=float)
+    parser.add_argument("--matunit", nargs='?', help="unit of mat plot.", default='mass')
+    args = parser.parse_args()
+    pathoffolder =  path + '\\' + args.folder
+    # print(pathoffolder)
+    # print(args.nuclides)
+    # print(args.niylim)
     mp = Moadsploter()
-    mp.readData('F:\pythonwork\workplace', 'MAT1')
+    mp.readData(pathoffolder, 'MAT1')
     mp.plotKeff(marker='o', color='r')
     mp.plotBeamIntensity(marker='*', color='g')
-    mp.plotNeutronImportance(marker='+', color='b', ylim=[1.0, 2])
-    mp.plotMat('922330', '902320', '922350', '922380', yunit='mass')
+    mp.plotNeutronImportance(marker='+', color='b', ylim=args.niylim)
+    mp.plotMat(*args.nuclides, yunit=args.matunit)
