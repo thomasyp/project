@@ -216,9 +216,9 @@ if __name__ == '__main__':
     parser.add_argument("--matunit", nargs='?', help="unit of mat plot.", default='mass')
     args = parser.parse_args()
     pathoffolder =  path + '\\' + args.folder
-    # print(pathoffolder)
-    # print(args.nuclides)
-    # print(args.niylim)
+    print(pathoffolder)
+    print(args.nuclides)
+    print(args.niylim)
     mp = Moadsploter()
     mp.readData(pathoffolder, 'MAT1')
     mp.plotKeff(marker='o', color='r')
