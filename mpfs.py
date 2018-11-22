@@ -106,12 +106,18 @@ def maxPowerPeakFactorSearch(inp, node, ppn, trforrod, mode, rodstep=10):
                 print('error!!!,MCNP5 run failed!')
                 exit(0)
             ### read results and write to results file
-            radialPowerPeakFactor, axialPowerPeakFactor, totPowerPeakFactor = computePowerDesityDistribution('meshtal', rod+'_'+str(instertposition) + '.csv')
+            
             keff = readKeff(mcnpinp+'o')
-            powerfactorresults[rod].append((instertposition, keff[0], radialPowerPeakFactor, axialPowerPeakFactor, totPowerPeakFactor))
+            meshfilename = mcnpinp + '_mesh_' + rod + '_' + str(instertposition)
             if os.path.isfile('meshtal'):
-                mh.deleteFiles('mesh_'+rod+'_'+str(instertposition))
-                os.rename('meshtal','mesh_'+rod+'_'+str(instertposition))
+                mh.deleteFiles(meshfilename)
+                os.rename('meshtal', meshfilename)
+                print("Rename meshtal to {:}\n".format(meshfilename))
+				
+            resultsfilename = mcnpinp + rod + '_' + str(instertposition) + '.csv'
+            uncertainty = 1.1 * 1.1
+            radialPowerPeakFactor, axialPowerPeakFactor, totPowerPeakFactor = computePowerDesityDistribution(meshfilename, resultsfilename, uncertainty)
+            powerfactorresults[rod].append((instertposition, keff[0], radialPowerPeakFactor, axialPowerPeakFactor, totPowerPeakFactor))    
             mh.cleanup(mcnpinp)
         ## set rod insertposition to inital
         cr[rod].setInsertPosition(initinsertposition)

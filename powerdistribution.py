@@ -1,4 +1,4 @@
-#!/home/zhuguifeng/BIN/bin/python3.3
+#!/home/yangpu/bin/anaconda3/bin/python
 # -*- coding: utf-8 -*-
 """
 Created on Tue Jun 26 10:15:47 2018
@@ -74,6 +74,8 @@ def computePowerDesityDistribution(meshfilename, csvfilename, uncertainty=1.2):
     
     #输出结果到文件
     csvfilename = csvfilename
+    radialstep = 10
+    axialstep = 10
     with open(csvfilename, 'w', newline='') as fid:
         writer = csv.writer(fid)
         lenth = len(normRadialPowerDensityDistri)
@@ -89,7 +91,7 @@ def computePowerDesityDistribution(meshfilename, csvfilename, uncertainty=1.2):
         writer.writerow(["Axial normalized power distribution:"])
         lenth = len(normAxialPowerDensityDistri)
         for ii in range(lenth):        
-            str1 = "{}~{}".format((lenth-ii)*18, (lenth-ii-1)*18)
+            str1 = "{}~{}".format((lenth-ii-1)*axialstep, (lenth-ii)*axialstep)
             
             writer.writerow([str1, "{:.4f}".format(normAxialPowerDensityDistri[lenth-ii-1])])
         writer.writerow([""])

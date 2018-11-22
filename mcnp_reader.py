@@ -1,3 +1,4 @@
+#!/home/yangpu/bin/anaconda3/bin/python
 # -*- coding: utf-8 -*-
 """
 Created on Mon Apr 09 14:56:21 2018
@@ -143,15 +144,16 @@ class McnpTallyReader(object):
 
     def readKeff(self, filename):
         results = {}
-        data = []
         with open(filename, 'r') as fileid:
             for eachline in fileid:
                 if "the final estimated combined collision" in eachline:
+                    data = []
                     lists = eachline.strip().split()
                     for ii in lists:
                         if re.match('\d.\d{4,5}$', ii) is not None:
                             data.append(ii)
                 if "the average number of neutrons produced per fission" in eachline:
+
                     lists = eachline.strip().split()
                     for ii in lists:
                         if re.match('\d.\d{2,3}$', ii) is not None:
