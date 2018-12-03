@@ -1,10 +1,19 @@
 #!/home/zhuguifeng/BIN/bin/python3.3
 # -*- coding: utf-8 -*-
+
+"""
+Created on Tue Oct 4 09:48:51 2018
+code for ADS burnup, version 1.0, only suport fixed-power mode.
+
+@author: Zhu Guifeng, Thomas
+"""
+
 print()
 print()
 print()
 print("                     ************************************")
 print("                     *          ADS Burnup Code         *")
+print("                     *          Version:       1.0      *")
 print("                     *      Institute:  SINAP, CAS      *")
 print("                     *    Author: Zhu Guifeng, Thomas   *")
 print("                     *         Time: Augest,2018        *")
@@ -292,7 +301,7 @@ def readResults(inp, mat, matt, mattally, power, keff, numNperP, loopout, loopin
                     ContinuousEmptyline = 0
                     if re.match('\d\.\d{5}E[+-]\d{2}', lists[0]) is not None and len(lists) > 1:
                         data.append(lists[0])
-                # 判断计数区是否结�?
+                # 判断计数区是否结�?
                 if ContinuousEmptyline == 2: #连续两个空行即为结束
                     flag1 = False
                     flag2 = False 
@@ -439,7 +448,7 @@ def deleteNotMcnpCard(inp, out):
             else:
                 lists = eachline.strip().split()    
                 if eachline[0].isspace() is False:
-                    # 在data card 最开头写入print �?
+                    # 在data card 最开头写入print �?
                     if spaceline == 2:
                         fout.write('print\n')
                         spaceline = None
@@ -8512,10 +8521,10 @@ for i in range(0,len(matt)):
                        mato[i][j]=int(matt[i][j][0:-4])*2
                for j in range(1,len(matt[i]),2):
                     if float(matt[i][j])>0:
-                        if int(matt[i][j-1]) > 900000: # 重金属质量计�?
+                        if int(matt[i][j-1]) > 900000: # 重金属质量计�?
                             matmhm[i]=float(matmhm[i])+float(matt[i][j])*int(mato[i][j-1])
                         mate[i]=float(mate[i])+float(matt[i][j])
-                        matm[i]=float(matm[i])+float(matt[i][j])*int(mato[i][j-1]) # 总质量计�?
+                        matm[i]=float(matm[i])+float(matt[i][j])*int(mato[i][j-1]) # 总质量计�?
                     else:
                         if int(matt[i][j-1]) > 900000:
                             matmhm[i]=float(matmhm[i])-float(matt[i][j])
@@ -8565,7 +8574,7 @@ with open(inp,'r') as f:
                 if lines[1]==mat[x][y]:
                 
                     cell[i].append(lines[0])
-                    # cell card 中将材料密度转为粒子数密�?
+                    # cell card 中将材料密度转为粒子数密�?
                     if float(lines[2])>0:
                         matd[i]=float(lines[2])
                     else:
@@ -8746,7 +8755,7 @@ for i in range(0,len(matt)):
         (x,y)=rank(i,vol)
         mattally[i][k]=float(matt[i][k])*float(vol[x][y])/0.6022
     for k in range(0,len(table)):
-        if '%.7e'%float(matmhm[i])!='0.0000000e+00':  #含重金属的材�?
+        if '%.7e'%float(matmhm[i])!='0.0000000e+00':  #含重金属的材�?
             if table[k] not in matt[i]:
                 mattally[i].extend([table[k],'1.00000E-36'])
 
@@ -8796,7 +8805,7 @@ for i in range(0,len(matt)):
                 mtally[i].append('      (1 '+str(m)+' (102) (16) (105) (103))\n') #105:(n,t);103:(n,p)
             else:
                 mtally[i].append('      (1 '+str(m)+' (102) (16) (107) (103))\n') #107:(n,a)
-        ########## 激发态核�?#################################        
+        ########## 激发态核�?#################################        
         if int(mattally[i][j])==952421:
             lines.append('m'+str(m)+'  95542.10c    1.\n')
         elif int(mattally[i][j]) == 952441:
@@ -8831,14 +8840,23 @@ for i in range(0,len(matt)):
     for j in range(0,len(mtally[i])):
         lines.append(mtally[i][j])
     lines.append('sd'+fm[i]+'4      '+str(vol[x][y])+'\n')
+emptyline = 0
 with open('mcnpinp', 'r') as fid1, open('mcnp'+inp, 'w') as fid2:
     for line in fid1:
-        fid2.writelines(line)
-    lists = line.strip().split()
-    if lists:
-        fid2.writelines('\n')
+        lists = line.strip().split()
+        if lists:
+            fid2.writelines(line)
+        else:
+            emptyline += 1
+            if emptyline <= 2:
+                fid2.writelines(line)
+            else:
+                break
+   
+    if line[-1] == '\n':
         fid2.writelines(lines)
     else:
+        fid2.writelines('\n')
         fid2.writelines(lines)
 os.remove('mcnpinp')
 
@@ -8886,7 +8904,7 @@ for i in range(0,len(matt)):
     shutil.copyfile('tape4-'+str(i),str(i)+'PBTAPE4')
 h.writelines('\n')
 h.close()
-#  循环开�?
+#  循环开�?
 numofOutloop = len(power)
 for loopout in range(0, numofOutloop):
     if loopout == 0:
