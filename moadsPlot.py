@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import argparse
 import os  
+import re
 
 #  MOLARMASS= {'902270':227,'902280':228,'902290':229,'902300':230,'902320':232.03805,'902330':233,'902340':234
 #        ,'912310':231.035879,'912320':232,'912330':233
@@ -99,13 +100,26 @@ class Moadsploter(object):
         if folderPath[-1] != '\\':
             folderPath += '\\' 
         resultsFilename = folderPath + 'MOBATADS.OUT'
-        namelists = ["cycle", 'dummy', "time", "power", 'keff', 'dev', 'avgNperFiss', 'Beam Intensity', 'Neutron Importance']
+
+        with open(resultsFilename, 'r') as fid:
+            for eachline in fid:
+                title = eachline
+                break
+        
+        namelists = re.split("\s{2,}", title.strip())
+        self.timetag = namelists[1]
+        namelists.insert(1, 'dummy')
+        
+        # print(pd.read_csv(resultsFilename))
         self.results = pd.read_csv(resultsFilename, sep='\s+', usecols=lambda x: x not in ['dummy'], skiprows=1, header=None, names=namelists)
+
         mafileName = folderPath + matfileName
         self.matdata = pd.read_csv(mafileName, sep='\s+', nrows=self.results.shape[0])
-        self.matdata['time'] = self.results['time'] 
+        
+        self.matdata[self.timetag] = self.results[self.timetag] 
         self.pername = folderPath.split('\\')[-2]
         self.perplotmatname = matfileName
+       
 
     def plotKeff(self, **kw):
         defaultDic = {}
@@ -118,14 +132,24 @@ class Moadsploter(object):
                 pass
             else:
                 kw[key] = value
+        tag = None
+        # find the column name of keff        
+        for name in self.results.columns:
+            if re.search('keff', name, re.I) is not None:
+                tag = name
+                break
+        if tag is None:
+            return 0
 
-        ax = self.results.plot(x='time', y=['keff'], **kw)
+        ax = self.results.plot(x=self.timetag, y=[tag], **kw)
         plt.xlabel('$Time \ (days)$', fontsize=15)
         plt.ylabel('$Keff$', fontsize=15)
         plt.show()
         fig = ax.get_figure()
         figname = self.pername + '_keff.jpg'
         fig.savefig(figname)
+        
+        return 1
     
     def plotBeamIntensity(self, **kw):
         defaultDic = {}
@@ -138,14 +162,23 @@ class Moadsploter(object):
                 pass
             else:
                 kw[key] = value
+        
+        tag = None
+        for name in self.results.columns:
+            if re.search('beam', name, re.I) is not None:
+                tag = name
+                break
+        if tag is None:
+            return 0
 
-        ax = self.results.plot(x='time', y=['Beam Intensity'], **kw)
+        ax = self.results.plot(x=self.timetag, y=[tag], **kw)
         plt.xlabel('$Time \ (days)$', fontsize=15)
         plt.ylabel('$Beam \ Intensity \ (mA)$', fontsize=15)
         plt.show()
         fig = ax.get_figure()
         figname = self.pername + '_beamintensity.jpg'
         fig.savefig(figname)
+        return 1
     
     def plotNeutronImportance(self, **kw):
         defaultDic = {}
@@ -159,24 +192,65 @@ class Moadsploter(object):
             else:
                 kw[key] = value
 
-        ax = self.results.plot(x='time', y=['Neutron Importance'], **kw)
+        tag = None
+        for name in self.results.columns:
+            if re.search('importance', name, re.I) is not None:
+                tag = name
+                break
+        
+        if tag is None:
+            return 0
+
+        ax = self.results.plot(x=self.timetag, y=[tag], **kw)
         plt.xlabel('$Time \ (days)$', fontsize=15)
         plt.ylabel('$Neutron \ Importance$', fontsize=15)
         plt.show()
         fig = ax.get_figure()
         figname = self.pername + '_neutronimportance.jpg'
         fig.savefig(figname)
+        return 1
+
+    def plotSourcestrength(self, **kw):
+        defaultDic = {}
+        defaultDic['linewidth'] = 2.0
+        defaultDic['xlim'] = [self.results.iloc[0,1], self.results.iloc[-1,1]]
+        defaultDic['logx'] = False
+        defaultDic['marker'] = 'o'
+        for key, value in defaultDic.items():
+            if key in kw.keys():
+                pass
+            else:
+                kw[key] = value
+        tag = None
+        for name in self.results.columns:
+            if re.search('source', name, re.I) is not None:
+                tag = name
+                break
+        if tag is None:
+            return 0
+
+        ax = self.results.plot(x=self.timetag, y=[tag], **kw)
+        plt.xlabel('$Time \ (days)$', fontsize=15)
+        plt.ylabel('$Source \ strength$', fontsize=15)
+        plt.show()
+        fig = ax.get_figure()
+        figname = self.pername + '_sourcestrength.jpg'
+        fig.savefig(figname)
+        return 0
     
     def plotMat(self, *matname, **kw):
         defaultDic = {}
         defaultDic['linewidth'] = 2.0
         defaultDic['xlim'] = [self.results.iloc[0,1], self.results.iloc[-1,1]]
         defaultDic['logx'] = False
+        defaultDic['logy'] = False
         
         
         if 'yunit' in kw.keys():
             yunit = kw.pop('yunit')
-            print(type(yunit))
+            
+        if 'foldername' in kw.keys():
+            foldername = kw.pop('foldername')
             
         for key, value in defaultDic.items():
             if key in kw.keys():
@@ -195,11 +269,11 @@ class Moadsploter(object):
             ylabels = '$Moore \ (mol)$'
         else:
             print("error!")
-            exit()
+            exit(1)
 
-        data['time'] = self.matdata['time']
-       
-        ax = data.plot(x='time', y=list(matname), **kw)
+        data[self.timetag ] = self.matdata[self.timetag]
+        data.to_csv(foldername + 'mat.csv')
+        ax = data.plot(x=self.timetag , y=list(matname), **kw)
         plt.xlabel('$Time \ (days)$', fontsize=15)
         plt.ylabel(ylabels, fontsize=15)
         plt.show()
@@ -216,12 +290,20 @@ if __name__ == '__main__':
     parser.add_argument("--matunit", nargs='?', help="unit of mat plot.", default='mass')
     args = parser.parse_args()
     pathoffolder =  path + '\\' + args.folder
-    print(pathoffolder)
-    print(args.nuclides)
-    print(args.niylim)
+    #print(pathoffolder)
+    #print(args.nuclides)
+    #print(args.niylim)
     mp = Moadsploter()
     mp.readData(pathoffolder, 'MAT1')
     mp.plotKeff(marker='o', color='r')
     mp.plotBeamIntensity(marker='*', color='g')
     mp.plotNeutronImportance(marker='+', color='b', ylim=args.niylim)
-    mp.plotMat(*args.nuclides, yunit=args.matunit)
+    mp.plotMat(*args.nuclides, yunit=args.matunit, foldername=args.folder)
+    mp.plotSourcestrength(marker='.', color='y')
+    # mp = Moadsploter()
+    # mp.readData('6rOUT', 'MAT1')
+    # mp.plotKeff(marker='o', color='r')
+    # mp.plotBeamIntensity(marker='*', color='g')
+
+
+    

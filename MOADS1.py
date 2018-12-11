@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Created on Tue Oct 4 09:48:51 2018
-code for ADS burnup, version 1.0, only suport fixed-power mode.
+Created on Mon Dec 3 13:48:51 2018
+code for ADS burnup, version 1.1, suport fixed-power and fixed-source mode.
 
 @author: Zhu Guifeng, Thomas
 """
@@ -13,7 +13,7 @@ print()
 print()
 print("                     ************************************")
 print("                     *          ADS Burnup Code         *")
-print("                     *          Version:       1.0      *")
+print("                     *          Version:       1.1      *")
 print("                     *      Institute:  SINAP, CAS      *")
 print("                     *    Author: Zhu Guifeng, Thomas   *")
 print("                     *         Time: Augest,2018        *")
@@ -69,6 +69,7 @@ def readinf(inp):
     t = -1
     npp = 0
     power = []
+    source = []
     newfr = []
     extime = []
     vol = []
@@ -77,7 +78,10 @@ def readinf(inp):
     mat = []
     reloads = 0
     addnux = 1
+    runmode = None # run mode : 0 for fixed power; 1 for fixed source
+
     #f=open(inp,'r',encoding='gbk')
+    
     f=open(inp,'r')
     inpfile=f.readlines()
     for line in inpfile:
@@ -86,6 +90,8 @@ def readinf(inp):
         if bool(lists):
             if re.match('power', lists[0], re.I) is not None:
                 power = lists[1:]
+            if re.match('source', lists[0], re.I) is not None:
+                source = lists[1:]
             if re.match('time', lists[0], re.I) is not None:
                 intime = lists[1:]
             if re.match('cycle', lists[0], re.I) is not None:
@@ -107,32 +113,13 @@ def readinf(inp):
             if  re.match('npp', lists[0], re.I) is not None:
                 npp = float(lists[1])
     f.close()
-    if power==[]:
-        print('error!!!,no power card!')
-        exit()
-    else:
-        print('POWER(MW):',power)
+    
     if vol==[]:
         print('error!!!,no vol card!')
         exit()
     else:
         print('burnup material volumes:',vol)
-    if len(extime)!=len(power):
-        for i in range(0,len(power)):
-            extime.append('0')
-        print('time of ex-core(day):',extime)
-    else:
-        print('time of ex-core(day):',extime)
-    if len(power)!=len(cycle):
-        print('error!!!,len(power)!=len(cycle),or no cycle card!')
-        exit()
-    else:
-        print('cycle is:',cycle)
-    if len(power)!=len(intime):
-        print('error!!!,len(power)!=len(time) or no time card!')
-        exit()
-    else:
-        print('time is:',intime)
+    
     if reloads==1:
         print('reload mat!')
     if len(vol)==len(mat):
@@ -150,7 +137,51 @@ def readinf(inp):
     else:
         strs = 'The number of neutrons produced by one proton is :{:.2f}'.format(npp)
         print(strs)
-    return power,vol,mat,cycle,extime,intime,reloads,addnux,npp
+
+    if power:
+        print('POWER(MW):', power)
+        runmode = 0
+        if len(extime)!=len(power):
+            for i in range(0,len(power)):
+                extime.append('0')
+            print('time of ex-core(day):',extime)
+        else:
+            print('time of ex-core(day):',extime)
+        if len(power)!=len(cycle):
+            print('error!!!,len(power)!=len(cycle),or no cycle card!')
+            exit()
+        else:
+            print('cycle is:',cycle)
+        if len(power)!=len(intime):
+            print('error!!!,len(power)!=len(time) or no time card!')
+            exit()
+        else:
+            print('time is:',intime)
+        return runmode,power,vol,mat,cycle,extime,intime,reloads,addnux,npp
+    elif source:
+        print('source(n/s):', source)
+        runmode = 1
+        if len(extime)!=len(source):
+            for i in range(0,len(source)):
+                extime.append('0')
+            print('time of ex-core(day):',extime)
+        else:
+            print('time of ex-core(day):',extime)
+        if len(source)!=len(cycle):
+            print('error!!!,len(source)!=len(cycle),or no cycle card!')
+            exit()
+        else:
+            print('cycle is:',cycle)
+        if len(source)!=len(intime):
+            print('error!!!,len(source)!=len(time) or no time card!')
+            exit()
+        else:
+            print('time is:',intime)
+        return runmode,source,vol,mat,cycle,extime,intime,reloads,addnux,npp
+    else:
+        print('error!!!,no power or source card!')
+        exit()
+    
 
 def mcnpmpi(inp,node,ppn):
     lines=['#!/bin/bash\n']
@@ -233,7 +264,7 @@ def manageOutputfiles(loopout, loopin):
     if os.path.isfile('mdata'):
             os.rename('mdata','mdata'+str(loopout+1)+'-'+str(loopin+1))
 
-def readResults(inp, mat, matt, mattally, power, keff, numNperP, loopout, loopin):
+def readResults(inp, mat, matt, mattally, keff, numNperP, loopout, loopin, **kw):
     """
         Function: Read tally results from mcnp output file and compute the one group crosssection,flux, 
         the beam intensity of accelerator and the importance of external neutron source.
@@ -261,6 +292,19 @@ def readResults(inp, mat, matt, mattally, power, keff, numNperP, loopout, loopin
     powwer=[0]##power
     A2mA = 1e3
     singleProtonCharge = 1.6022e-19
+    fixedpower = 0
+    fixedsource = 1
+
+    if 'power' in kw.keys():
+        power = kw['power']
+        rmode = fixedpower      
+    elif 'sourceStrength' in kw.keys():
+        sourceStrength = kw['sourceStrength']
+        rmode = fixedsource
+    else:
+        print('Error! The power and sourcestrength card are missing!')
+        exit()
+
     
     for i in range(0, len(matt)-1):
         powwer.append(0)
@@ -301,7 +345,7 @@ def readResults(inp, mat, matt, mattally, power, keff, numNperP, loopout, loopin
                     ContinuousEmptyline = 0
                     if re.match('\d\.\d{5}E[+-]\d{2}', lists[0]) is not None and len(lists) > 1:
                         data.append(lists[0])
-                # 判断计数区是否结�?
+                # 判断计数区是否结�?
                 if ContinuousEmptyline == 2: #连续两个空行即为结束
                     flag1 = False
                     flag2 = False 
@@ -328,12 +372,20 @@ def readResults(inp, mat, matt, mattally, power, keff, numNperP, loopout, loopin
     powerr=0.0
     #print(len(matt))
     for i in range(0,len(matt)):
-        powerr=powerr+powwer[i]
+        powerr = powerr + powwer[i]
     ##flux
     write2file('powerr', 'a', str(powerr)+'\n')
     flux=[]
-    beamIntensity = power * aveNpFiss * (1./ keff - 1.) / powerr / numNperP / neutronImportance * A2mA #unit mA
-    sourceStrength = beamIntensity / A2mA / singleProtonCharge * numNperP
+    if rmode == fixedpower:
+        beamIntensity = power * aveNpFiss * (1./ keff - 1.) / powerr / numNperP / neutronImportance * A2mA #unit mA
+        sourceStrength = beamIntensity / A2mA / singleProtonCharge * numNperP
+    elif rmode == fixedsource:
+        beamIntensity = sourceStrength * A2mA * singleProtonCharge / numNperP 
+        power = sourceStrength * singleProtonCharge / aveNpFiss / (1./ keff - 1.) * powerr * neutronImportance 
+    else:
+        print('The run mode error!')
+        exit()
+
     for i in range(0,len(matt)):
         flux.append(float(fom[i]*sourceStrength))   
     
@@ -357,7 +409,7 @@ def readResults(inp, mat, matt, mattally, power, keff, numNperP, loopout, loopin
         n += 1
     write2file('crossSection'+str(loopout)+'-'+str(loopin), 'w', lines)   
 
-    return xs, flux, beamIntensity, neutronImportance 
+    return xs, flux, beamIntensity, neutronImportance, sourceStrength, power
 
 def write2file(filename, openMode, lines):
     with open(filename, openMode) as f:
@@ -377,7 +429,7 @@ def createFixedInputCard(inp, out):
         for eachline in fin:
             lists = eachline.strip().split()
             if eachline[0].isspace() is False:
-                # print(lists)
+                
                 if re.match('kcode', lists[0], re.I) is not None:
                     shadow = True
                 elif re.match('ksrc', lists[0], re.I) is not None:
@@ -448,11 +500,11 @@ def deleteNotMcnpCard(inp, out):
             else:
                 lists = eachline.strip().split()    
                 if eachline[0].isspace() is False:
-                    # 在data card 最开头写入print �?
+                    # 在data card 最开头写入print �?
                     if spaceline == 2:
                         fout.write('print\n')
                         spaceline = None
-                    if re.match('power|time|extime|cycle|mat|vol|end|print|addnux|npp', lists[0], re.I) is not None:
+                    if re.match('source|power|time|extime|cycle|mat|vol|end|print|addnux|npp', lists[0], re.I) is not None:
                         pass                
                     else:
                         fout.write(eachline)
@@ -460,7 +512,7 @@ def deleteNotMcnpCard(inp, out):
                     fout.write(eachline)
     return ''.join(words)    
 
-def write2resultfile(loopout, loopin, time, power, kef, dev, avgNperFiss, beamIntensity, neutronImportance):
+def write2resultfile(loopout, loopin, time, power, kef, dev, avgNperFiss, beamIntensity, neutronImportance, sourceStrength):
     """
         Function: write the calculation results into file 'MOBATADSOUT'.
         Parameters: 1.loopout: outside loop num. 
@@ -477,11 +529,11 @@ def write2resultfile(loopout, loopin, time, power, kef, dev, avgNperFiss, beamIn
 
     with open('MOBATADS.OUT', 'a') as f:
             if loopout == 0 and loopin == 0:
-                strs = '{:^9}{:^12}{:^14}{:^12}{:^12}{:^20}{:^20}{:^20}\n'.format('Cycle', 'Time(d)', 'Power(MW)',
-                 'Keff', 'dev', 'AvgNperFiss', 'Beam Intensity(mA)', 'Neutron Importance')
+                strs = '{:^9}{:^12}{:^14}{:^12}{:^12}{:^20}{:^20}{:^20}{:^20}\n'.format('Cycle', 'Time(d)', 'Power(MW)',
+                 'Keff', 'dev', 'AvgNperFiss', 'Beam Intensity(mA)', 'Neutron Importance', 'Source strength')
                 f.writelines(strs)
-            strs = '{:>3d}-{:<3d}:{:^14.5e}{:^14.2f}{:^12.5f}{:^12.5f}{:^20.4f}{:^20.4f}{:^20.4f}'.format(loopout, 
-            loopin, time, float(power), kef, dev, avgNperFiss, beamIntensity, neutronImportance)       
+            strs = '{:>3d}-{:<3d}:{:^14.5e}{:^14.2e}{:^12.5f}{:^12.5f}{:^20.4f}{:^20.4f}{:^20.4f}{:^20.4e}'.format(loopout, 
+            loopin, time, float(power), kef, dev, avgNperFiss, beamIntensity, neutronImportance, sourceStrength)       
             f.writelines(strs+'\n')
 
 def mcnpopro(inp,mat,matt,mattally,vol,power):
@@ -8448,7 +8500,7 @@ print("                     *********Reading Information********")
 print()
 print()
 #power,vol,mat,cycle,extime,intime,reloads
-(power, vol, mat, cycle, extime, intime, reloads, addnux, npp)=readinf(inp)
+(runmode, poworsor, vol, mat, cycle, extime, intime, reloads, addnux, npp)=readinf(inp)
 
 print()
 print()
@@ -8521,10 +8573,10 @@ for i in range(0,len(matt)):
                        mato[i][j]=int(matt[i][j][0:-4])*2
                for j in range(1,len(matt[i]),2):
                     if float(matt[i][j])>0:
-                        if int(matt[i][j-1]) > 900000: # 重金属质量计�?
+                        if int(matt[i][j-1]) > 900000: # 重金属质量计�?
                             matmhm[i]=float(matmhm[i])+float(matt[i][j])*int(mato[i][j-1])
                         mate[i]=float(mate[i])+float(matt[i][j])
-                        matm[i]=float(matm[i])+float(matt[i][j])*int(mato[i][j-1]) # 总质量计�?
+                        matm[i]=float(matm[i])+float(matt[i][j])*int(mato[i][j-1]) # 总质量计�?
                     else:
                         if int(matt[i][j-1]) > 900000:
                             matmhm[i]=float(matmhm[i])-float(matt[i][j])
@@ -8574,7 +8626,7 @@ with open(inp,'r') as f:
                 if lines[1]==mat[x][y]:
                 
                     cell[i].append(lines[0])
-                    # cell card 中将材料密度转为粒子数密�?
+                    # cell card 中将材料密度转为粒子数密�?
                     if float(lines[2])>0:
                         matd[i]=float(lines[2])
                     else:
@@ -8755,7 +8807,7 @@ for i in range(0,len(matt)):
         (x,y)=rank(i,vol)
         mattally[i][k]=float(matt[i][k])*float(vol[x][y])/0.6022
     for k in range(0,len(table)):
-        if '%.7e'%float(matmhm[i])!='0.0000000e+00':  #含重金属的材�?
+        if '%.7e'%float(matmhm[i])!='0.0000000e+00':  #含重金属的材�?
             if table[k] not in matt[i]:
                 mattally[i].extend([table[k],'1.00000E-36'])
 
@@ -8805,7 +8857,7 @@ for i in range(0,len(matt)):
                 mtally[i].append('      (1 '+str(m)+' (102) (16) (105) (103))\n') #105:(n,t);103:(n,p)
             else:
                 mtally[i].append('      (1 '+str(m)+' (102) (16) (107) (103))\n') #107:(n,a)
-        ########## 激发态核�?#################################        
+        ########## 激发态核�?#################################        
         if int(mattally[i][j])==952421:
             lines.append('m'+str(m)+'  95542.10c    1.\n')
         elif int(mattally[i][j]) == 952441:
@@ -8904,8 +8956,9 @@ for i in range(0,len(matt)):
     shutil.copyfile('tape4-'+str(i),str(i)+'PBTAPE4')
 h.writelines('\n')
 h.close()
-#  循环开�?
-numofOutloop = len(power)
+#  循环开�?
+numofOutloop = len(poworsor)
+
 for loopout in range(0, numofOutloop):
     if loopout == 0:
         numofInnerloop = int(cycle[loopout]) + 1
@@ -8932,7 +8985,9 @@ for loopout in range(0, numofOutloop):
         print()
         print('             ********KCODE MODE BEGIN       ********')
         print()
+        
         os.system('  mpirun -r ssh -np '+str(int(node*ppn))+' mcnp5.mpi n='+inp)
+        
         if os.path.isfile(inp+'o'):
             print('MCNP5 run finished!')
         else:
@@ -8963,8 +9018,13 @@ for loopout in range(0, numofOutloop):
             exit()
         
         manageOutputfiles(loopout, loopin)  
-        
-        (xs, flux, beamIntensity, neutronImportance) = readResults(outputfile, mat, matt, mattally, float(power[loopout]), kef, npp, loopout, loopin)
+        if runmode == 0:
+            (xs, flux, beamIntensity, neutronImportance, sourceStrength, runpower) \
+            = readResults(outputfile, mat, matt, mattally, kef, npp, loopout, loopin, power=float(poworsor[loopout]))
+        else:
+            (xs, flux, beamIntensity, neutronImportance, sourceStrength, runpower) \
+            = readResults(outputfile, mat, matt, mattally, kef, npp, loopout, loopin, sourceStrength=float(poworsor[loopout]))
+
         print('flux is:')
         fluxstrs = ['{:.3e}'.format(x) for x in flux]
         print(fluxstrs)
@@ -8977,11 +9037,13 @@ for loopout in range(0, numofOutloop):
             m.writelines('\n')
             m.close()
         
-        write2resultfile(loopout, loopin, time, power[loopout], kef, dev, avgNperFiss, beamIntensity, neutronImportance)
+        write2resultfile(loopout, loopin, time, runpower, kef, dev, 
+            avgNperFiss, beamIntensity, neutronImportance, sourceStrength)
 
         writetape9(xs)
         
         if float(kef) < 1:
+            # 加料
             if reloads==1:
                 timel=float(intime[loopout])*(float(keff)-1)/(float(keff)-float(kef))
                 for i in range(0,len(matt)):
@@ -9097,7 +9159,7 @@ for loopout in range(0, numofOutloop):
         for i in range(0,len(matt)):
             fluxp.append(flux[i])
         ##############################################################################
-        if reloads <=1:
+        if reloads <=1:  #不加�?
             for i in range(0,len(matt)):
                 (x,y)=rank(i,vol)
                 shutil.copyfile('tape4-'+str(i),'TAPE4.INP')
