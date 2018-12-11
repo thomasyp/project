@@ -25,7 +25,7 @@ yarr2 = c2 * np.exp(-1*xarr2/a2) * np.sinh((b2*xarr2)**0.5)
 plt.plot(xarr1, yarr1, xarr2, yarr2)
 
 plt.xlabel('decreasing time (s)')
-plt.ylabel('E (MeV)')
+plt.ylabel('$E  \ (MeV) $')
 
 plt.xscale('log')
 plt.ylim(0, 0.4)
