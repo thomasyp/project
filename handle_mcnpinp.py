@@ -12,7 +12,7 @@ class McnpinpHandler(object):
     def __init__(self):
         pass
     
-    def readContent(self, inpname, designator):
+    def readContent(self, inpname, designator, section='cell'):
         """
             Function: read content from  mcnp input card.
             Parameters: 
@@ -23,15 +23,30 @@ class McnpinpHandler(object):
                 line: read context.
         
         """
+        if section == 'cell':
+            numsp = 0
+        elif section == 'surface':
+            numsp = 1
+        elif section == 'data':
+            numsp = 2
+        else:
+            self.errorMessage("section input error!")
+            return -1
         with open(inpname, 'r', encoding="utf-8") as fid:
             content = fid.readlines()
         line = ''
+        numSeparator = 0 
         for eachline in content:
             if eachline.strip() == '':
-                line = eachline
+                lists = line.strip().split()
+                if len(lists) !=0 and lists[0] == designator and numSeparator == numsp:
+                    return line
+                else:
+                    line = eachline
+                numSeparator += 1
             elif eachline[0] != ' ':
                 lists = line.strip().split()
-                if len(lists) !=0 and lists[0] == designator:
+                if len(lists) !=0 and lists[0] == designator and numSeparator == numsp:
                     return line
                 else:
                     line = eachline
@@ -40,7 +55,7 @@ class McnpinpHandler(object):
         return line
         
 
-    def modifyinp(self, inpname, designator, modifiedline):
+    def modifyinp(self, inpname, designator, modifiedline, section='cell'):
         """
             Function: modify mcnp input card by modifiedline.
             Parameters: 
@@ -52,18 +67,40 @@ class McnpinpHandler(object):
                 normalizecontent: none.
         
         """
+
+        if section == 'cell':
+            numsp = 0
+        elif section == 'surface':
+            numsp = 1
+        elif section == 'data':
+            numsp = 2
+        else:
+            self.errorMessage("section input error!")
+            return -1
         with open(inpname, 'r', encoding="utf-8") as fid:
             content = fid.readlines()
             
         with open(inpname, 'w', encoding="utf-8") as f:
             line = ''
+            numSeparator = 0 
             for eachline in content:
+                # print(eachline)
+                if eachline.strip() != '' and eachline.split()[0] == 'c':
+                    continue
                 if eachline.strip() == '':
-                    f.write(line)
-                    line = eachline
+                    
+                    lists = line.strip().split()
+                    if len(lists) !=0 and lists[0] == designator and numSeparator == numsp:
+                        line = self.normalize(modifiedline)
+                        f.write(line)
+                        line = eachline
+                    else:
+                        f.write(line)
+                        line = eachline
+                    numSeparator += 1
                 elif eachline[0] != ' ':
                     lists = line.strip().split()
-                    if len(lists) !=0 and lists[0] == designator:
+                    if len(lists) !=0 and lists[0] == designator and numSeparator == numsp:
                         line = self.normalize(modifiedline)
                         f.write(line)
                         line = eachline
@@ -127,14 +164,18 @@ class McnpinpHandler(object):
         if os.path.isfile('meshtal'):
             os.remove('meshtal')
 
+    def errorMessage(self, line):
+        print('error:{}'.format(line))
+
+
 if __name__ == "__main__":
     mh = McnpinpHandler()
-    # line = "502       18 -2.1 (465:452:-454) -466 -452 454 2002 2004 2030 2032 2036 2038\
-    #   2040 2042 2044 2046 2048 2050 2052 2054 2056 imp:n=4 502 18 -2.1\
-    #   (465:452:-454) -466 -452 454 2002 2004 2030 2032 2036 2038 2040 2042\
-    #   2044 2046 2048 2050 2052 2054 2056 imp:n=4 502 18 -2.1"
-    # mh.modifyinp('0000.txt', '1', line)
-    line = mh.readContent('0000.txt', '32')
+    line = "502       18 -2.1 (465:452:-454) -466 -452 454 2002 2004 2030 2032 2036 2038 2040 2042 2044 2046 \
+          2048 2050 2052 2054 2056 imp:n=4 502 18 -2.1\
+      (465:452:-454) -466 -452 454 2002 2004 2030 2032 2036 2038 2040 2042\
+      2044 2046 2048 2050 2052 2054 2056 imp:n=4 502 18 -2.1"
+    mh.modifyinp('cor4.txt', '99', line)
+    line = mh.readContent('cor4.txt', '4')
     print(line)
     
 
