@@ -417,6 +417,23 @@ class McnpTallyReader(object):
         print("Error: {:}!".format(strs))
 
 
+    def readCaptureEscapeFissionRate(self, outfile, cell=None):
+        """
+        Fuction name:
+            readCaptureEscapeFissionRate
+        Fuction:
+            读取mcnp输出文件中的俘获率，泄漏率以及裂变率（归一到一个源中子）
+        Input parameter:
+            需要读取的 mcnp输出文件名：outfile
+            需要读取的 cell内的俘获率和裂变率：hdfFileName
+           
+        Return:
+            如果cell为None，则返回总的俘获率，泄漏率以及裂变率
+            否侧返回输入cell的俘获率，及裂变率和总的泄露率
+        """
+        
+
+
 if __name__ == '__main__':
     import yt
     groupname = []
