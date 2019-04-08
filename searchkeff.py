@@ -1,180 +1,140 @@
+#!/home/yangpu/bin/anaconda3/bin/python
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Jun 20 15:18:40 2018
-
-@author: yang
-"""
+from tool.handle_mcnpinp import McnpinpHandler 
+from compoundcalculator.compound_density import Isotope, Nuclide, Compound, Material
 import os
-from mcnp_reader import McnpTallyReader 
+from tool.mcnp_reader import McnpTallyReader
+import argparse
 
-from collections import namedtuple
+def changeReflector(inp, step, designator, section='cell'):
+    mh = McnpinpHandler()
+    line = mh.readContent(inp, designator, section)
+    data = line.strip().split()[2]
+    if float(data) > 0:
+        replacedata = str(float(data)+step)
+    else:
+        replacedata = str(float(data)-step)
+    newline = line.replace(data, replacedata)
+    mh.modifyinp(inp, designator, newline, section)
 
-class Material(object):
-    mat = namedtuple('mat', 'elementNo, lib, fraction')
-    def __init__(self, name):
-        self.name = name
-        self.element = []
-        
-    def insertElement(self, elementNo, lib, fraction):
-        self.element.append(self.mat(elementNo, lib, fraction))        
-    
-    def setDesity(self, density):
-        self.density = density
-        
-    def getDesity(self):
-        return self.density
-        
-    def convertMcard(self):
-        outstrs = '{} '.format(self.name)
-        
-        for element in self.element:
-            strs = '      {}.{}  {:.7e}\n'.format(*element)
-            
-            outstrs = outstrs + strs
-            
-        return outstrs
-        
-    
-        
-def modifyMcnpInput(inputfile, modifedfile, startU233):
-    m1fractionOfUTh = 6.35e-3 
-    m2fractionOfUTh = 7.45e-3    
-    m1 = Material("m1")
-    m1.insertElement('8016',  '30c',  1.27e-2       )
-    m1.insertElement('26054', '30c', 4.90142404E-04 )
-    m1.insertElement('26056', '30c', 7.41950303E-03 )
-    m1.insertElement('26057', '30c', 1.68337778E-04 )
-    m1.insertElement('26058', '30c', 2.20167896E-05 )
-    m1.insertElement('24050', '30c', 5.06546821E-05 )
-    m1.insertElement('24052', '30c', 9.39316048E-04 )
-    m1.insertElement('24053', '30c', 1.04498722E-04 )
-    m1.insertElement('24054', '30c', 2.55305483E-05 )
-    m1.insertElement('25055', '30c', 4.60e-5        )
-    m1.insertElement('74182', '30c', 1.237239792E-05)
-    m1.insertElement('74183', '30c', 6.6142183E-06  )
-    m1.insertElement('74184', '30c', 1.4085057E-05  )
-    m1.insertElement('74186', '30c', 1.2928327E-05  )
-    m1.insertElement('82204', '30c', 2.5173595E-04  )
-    m1.insertElement('82206', '30c', 4.2913470E-03  )
-    m1.insertElement('82207', '30c', 3.9161785E-03  )
-    m1.insertElement('82208', '30c', 9.2407385E-03  )
-     
-    
-    m2 = Material("m2")
-    m2.insertElement('8016' ,  '30c',  1.49e-2         )
-    m2.insertElement('26054', '30c',  5.36736188E-04  )
-    m2.insertElement('26056', '30c',  8.12481381E-03  )
-    m2.insertElement('26057', '30c',  1.84340258E-04  )
-    m2.insertElement('26058', '30c',  2.41097437E-05  )
-    m2.insertElement('24050', '30c',  4.79410385E-05  )
-    m2.insertElement('24052', '30c',  8.88995545E-04  )
-    m2.insertElement('24053', '30c',  9.89005758E-05  )
-    m2.insertElement('24054', '30c',  2.41628403E-05  )
-    m2.insertElement('25055', '30c',  5.10e-5         )    
-    m2.insertElement('74182', '30c',  1.371722437E-05 )
-    m2.insertElement('74183', '30c',  7.3331551E-06   )
-    m2.insertElement('74184', '30c',  1.5616041E-05   )
-    m2.insertElement('74186', '30c',  1.4333580E-05   )
-    m2.insertElement('82204', '30c',  2.2186897E-04   )
-    m2.insertElement('82206', '30c',  3.7822042E-03   )
-    m2.insertElement('82207', '30c',  3.4515471E-03   )
-    m2.insertElement('82208', '30c',  8.1443797E-03   )
-      
-    
-    m3 = Material("m3")
-    m3.insertElement('90232' ,  '30c',   7.45e-3         )
-    m3.insertElement('8016' ,  '30c', 1.49e-2         )
-    m3.insertElement('26054', '30c', 5.36736188E-04  )
-    m3.insertElement('26056', '30c', 8.12481381E-03  )
-    m3.insertElement('26057', '30c', 1.84340258E-04  )
-    m3.insertElement('26058', '30c', 2.41097437E-05  )
-    m3.insertElement('24050', '30c', 4.79410385E-05  )
-    m3.insertElement('24052', '30c', 8.88995545E-04  )
-    m3.insertElement('24053', '30c', 9.89005758E-05  )
-    m3.insertElement('24054', '30c', 2.41628403E-05  )
-    m3.insertElement('25055', '30c', 5.10e-5         )    
-    m3.insertElement('74182', '30c', 1.371722437E-05 )
-    m3.insertElement('74183', '30c', 7.3331551E-06   )
-    m3.insertElement('74184', '30c', 1.5616041E-05   )
-    m3.insertElement('74186', '30c', 1.4333580E-05   )
-    m3.insertElement('82204', '30c', 2.2186897E-04   )
-    m3.insertElement('82206', '30c', 3.7822042E-03   )
-    m3.insertElement('82207', '30c', 3.4515471E-03   )
-    m3.insertElement('82208', '30c', 8.1443797E-03   )
-    
-    
-    m4 = Material("m4")
-    m4.insertElement('82204', '30c', 4.3378228E-04)
-    m4.insertElement('82206', '30c', 7.3946940E-03)
-    m4.insertElement('82207', '30c', 6.7482172E-03)
-    m4.insertElement('82208', '30c', 1.5923307E-02)
-      
-    
-    m5 = Material("m5")
-    m3.insertElement('26054', '30c', 4.01190634E-04)
-    m5.insertElement('26056', '30c', 6.07300063E-03)
-    m5.insertElement('26057', '30c', 1.37787589E-04)
-    m5.insertElement('26058', '30c', 1.80211500E-05)
-    m5.insertElement('24050', '30c', 3.61819158E-05)
-    m5.insertElement('24052', '30c', 6.70940034E-04)
-    m5.insertElement('24053', '30c', 7.46419440E-05)
-    m5.insertElement('24054', '30c', 1.82361059E-05)
-    m5.insertElement('25055', '30c', 3.80e-5       )    
-    m5.insertElement('74182', '30c', 1.02206768E-05)
-    m5.insertElement('74183', '30c', 5.4639195E-06 )
-    m5.insertElement('74184', '30c', 1.1635482E-05 )
-    m5.insertElement('74186', '30c', 1.0679922E-05 )
-    m5.insertElement('82204', '30c', 3.4275911E-04 )
-    m5.insertElement('82206', '30c', 5.8430205E-03 )
-    m5.insertElement('82207', '30c', 5.3321978E-03 )
-    m5.insertElement('82208', '30c', 1.2582023E-02 )
-     
-    
-    restoffile = 'mode   n\nkcode   50000 1 50 250\nksrc    0 0 0\nprint'
-    
-    with open(inputfile,'r') as fid2, open(modifedfile,'w') as fid1:    
-        for eachline in fid2:
-            fid1.write(eachline)
-            if 'c data card' in eachline:
-                break
-        m1.insertElement('92233', '30c', m1fractionOfUTh*startU233)
-        m1.insertElement('90232', '30c', m1fractionOfUTh*(1-startU233))
-        m2.insertElement('92233', '30c', m2fractionOfUTh*startU233)
-        m2.insertElement('90232', '30c', m2fractionOfUTh*(1-startU233))
-        fid1.write(m1.convertMcard())
-        fid1.write(m2.convertMcard())
-        fid1.write(m3.convertMcard())
-        fid1.write(m4.convertMcard())
-        fid1.write(m5.convertMcard())
-        fid1.write(restoffile)
-        
-def cleandir(*files):
-    for f in files:
-        if os.path.exists(f):
-            os.remove(f)
-        
-def searchKeff(inputfile, modifedfile, objectkeff, startU233=0.09965, steplenth=0.0005, eps=5e-4):
-    outfile = 'out'
-    mtr = McnpTallyReader()
-    cleandir(outfile, 'runtpe', 'srctp')
-    modifyMcnpInput(inputfile, modifedfile, startU233)
-    cmd = 'mpirun -np 12 /home/daiye/bin/mcnp5.mpi inp={} outp={}>>out.log'.format(modifedfile, outfile)
-    os.system(cmd)
-    resluts = mtr.readKeff(outfile)
-    with open("keff.txt", 'w') as fid:
-        fid.write('E = {:.4%}  keff = {resluts[keff]}  error = {resluts[error]}\n'.format(startU233, resluts=resluts))
-        ii = 1
-        while(abs(float(resluts['keff'])-objectkeff) > eps):
-            cleandir(outfile, 'runtpe', 'srctp')
-            if ii > 100:
-                return
-            startU233 = startU233 - steplenth
-            modifyMcnpInput(inputfile, modifedfile, startU233)
-            os.system(cmd)
-            resluts = mtr.readKeff(outfile)
-            fid.write('E = {:.4%}  keff = {resluts[keff]}  error = {resluts[error]}\n'.format(startU233, resluts=resluts))
-            ii = ii + 1 
-    
-    
-searchKeff('crit.txt', 'inp.txt', 0.9800)    
-            
+u235 = Isotope('U235', 92, 235.043923)
+u238 = Isotope('U238', 92, 238.050783)
+th232 = Isotope('Th232', 90, 232.03805)
+pu239 = Isotope('Pu239', 94, 239.0) 
+f19 = Isotope('F19', 9, 18.998403)
+be9 = Isotope('Be9', 4, 9.012182)
+li6 = Isotope('li6', 3, 9.012182)
+li7 = Isotope('li7', 3, 9.012182)
+cl37 = Isotope('cl37', 17, 36.965903)
+mg24= Isotope('mg24', 12, 23.985042)
+mg25= Isotope('mg25', 12, 24.985837)
+mg26= Isotope('mg26', 12, 25.982593)
+na23 = Isotope('na23', 11, 22.989770)
+udict = {u235:0.1995, u238:0.8005}
+fdict = {f19:1}
+cldict = {cl37:1}
+pudict = {pu239:1}
+mgdict = {mg24:0.7899, mg25:0.10, mg26:0.1101}
+nadict = {na23:1}
+cl = Nuclide('Cl', cldict)
+u = Nuclide('U', udict)
+f = Nuclide("F", fdict)
+th = Nuclide("Th", {th232:1})
+be = Nuclide("Be", {be9:1})
+pu = Nuclide("Pu", pudict)
+mg = Nuclide("Mg", mgdict)
+na = Nuclide("Na", nadict)
+nacldict = {na:1, cl:1}
+thcl4dict = {th:1, cl:4}
+mgcl2dict = {mg:1, cl:2}
+pucl3dict = {pu:1, cl:3}
+ucl3dic = {u:1, cl:3}
+# lifdict = {li:1, f:1}
+nacl = Compound('NaCl', nacldict, 2.1359, 0.543e-3)
+thcl4 = Compound('ThCl4', thcl4dict, 4.823, 0.0014)
+
+pucl3 = Compound('PuCl3', pucl3dict, 4.809, 0)
+ucl3 = Compound('UCl3', pucl3dict, 6.3747, 1.5222e-3)
+# thf4 = Compound('ThF4', thf4dict, 6.490933)
+# bef2 = Compound('BeF2', bef2dict, 1.9602115)
+matdict = {}
+mtr = McnpTallyReader()
+# parser=argparse.ArgumentParser(description='input file name, node and ppn')
+# parser.add_argument('-n',action="store",dest="node",type=int,default=1)
+# parser.add_argument('-p',action="store",dest="ppn",type=int,default=1)
+# parser.add_argument('inp',action="store",type=str)
+# args=parser.parse_args()
+# print('inputfile=%s' %args.inp,'ppn=%s' %args.ppn)
+# inp = args.inp
+# node = args.node
+# ppn = args.ppn
+inp = 'cor1'
+results = {}
+# startmolnacl = 80
+startmolnacl = 80
+endreflectorThickness = 5
+thicknessStep = 5
+mh = McnpinpHandler()
+mh.cleanup(inp)
+# loop for reflector
+for kk in range(0, endreflectorThickness, thicknessStep):
+    if kk == 0:
+        changeReflector(inp, 0, '15', 'surface')
+        changeReflector(inp, 0, '16', 'surface')
+        changeReflector(inp, 0, '17', 'surface')
+        changeReflector(inp, 0, '18', 'surface')
+        changeReflector(inp, 0, '19', 'surface')
+        changeReflector(inp, 0, '20', 'surface')
+    else:
+        changeReflector(inp, thicknessStep, '15', 'surface')
+        changeReflector(inp, thicknessStep, '16', 'surface')
+        changeReflector(inp, thicknessStep, '17', 'surface')
+        changeReflector(inp, thicknessStep, '18', 'surface')
+        changeReflector(inp, thicknessStep, '19', 'surface')
+        changeReflector(inp, thicknessStep, '20', 'surface')
+    # loop for nacl 
+    for ii in range(startmolnacl, 0, -5):
+        matdict[nacl] = ii
+        # loop for pucl    
+        for jj in range(100-ii, 0, -5):     
+            matdict[pucl3] = jj        
+            matdict[thcl4] = 100 - ii - jj
+            mat = Material('mat1', matdict, 900)
+            # print(uf4.getActomicMass())
+            # print(thf4.getActomicMass())
+            density = mat.getDensity()
+            print(density)
+            # print(mat.toMcnpCard().strip())
+            line = mat.toMcnpCard().strip()
+            mh.modifyinp(inp, 'm1', 'm1 '+line, 'data')
+            line = mh.readContent(inp, '4')
+            print(line)
+            # print(line.strip().split()[2])
+            newline = line.replace(line.strip().split()[2], '-{:.4f}'.format(density))
+            print(newline)
+            mh.modifyinp(inp, '4', newline)
+            os.system('mcnp5'+ ' n=' + inp)
+            # os.system('mpirun -r ssh -np '+ str(int(node*ppn)) +' /home/daiye/bin/mcnp5.mpi n=' + inp)
+            if os.path.isfile(inp+'o'):
+                print('MCNP5 run finished!')
+                result = mtr.readKeff(inp+'o')
+                if os.path.isfile(inp+'o'):
+                    oldfilename = inp+'o'
+                    newfilename = inp+'o_'+str(kk)+'_'+str(matdict[nacl])+'_'+str(matdict[pucl3])+'_'+str(matdict[thcl4])
+                    mh.deleteFiles(newfilename)
+                    os.rename(oldfilename, newfilename)
+                mh.cleanup(inp)
+            else:
+                print('error!!!,MCNP5 run failed!')
+                exit(0)
+            results[(kk, matdict[nacl], matdict[pucl3], matdict[thcl4])] = result['keff']
+            print("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format(kk, matdict[nacl], matdict[pucl3], matdict[thcl4], result['keff']))
+
+with open("results.out", 'w') as fid, open("search.out", 'w') as fid2:
+    fid.write("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff'))
+    fid2.write("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff'))
+    for key, value in results.items():
+        fid2.write("{0[0]:<10} {0[1]:<10} {0[2]:<10} {0[3]:<10} {1:<10}\n".format(key, value))
+        if float(value) > 0.97 and float(value)<0.99:
+            fid.write("{0[0]:<10} {0[1]:<10} {0[2]:<10} {0[3]:<10} {1:<10}\n".format(key, value))
+
