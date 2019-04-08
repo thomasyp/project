@@ -417,31 +417,142 @@ class McnpTallyReader(object):
         print("Error: {:}!".format(strs))
 
 
-    def readCaptureEscapeFissionRate(self, outfile, cell=None):
+    def readNeutronActivity(self, outfile, cell=None, nuclides=None):
         """
-        Fuction name:
-            readCaptureEscapeFissionRate
         Fuction:
             读取mcnp输出文件中的俘获率，泄漏率以及裂变率（归一到一个源中子）
+            case1: cell=None, nuclides=None 返回 总的俘获率，泄漏率以及裂变率（loss to fission）;
+            case2: cell!=None, nuclides=None 返回 cell内的俘获率;
+            case3: cell!=None, nuclides!=None 返回 cell内 的nulides 的俘获率;
+            case4: cell=None, nuclides!=None 返回 nulides 的俘获率;
+
         Input parameter:
             需要读取的 mcnp输出文件名：outfile
-            需要读取的 cell内的俘获率和裂变率：hdfFileName
-           
+            需要读取俘获率的 cell 类型为lists
+            需要读取俘获率的 nuclides 类型为lists
         Return:
-            如果cell为None，则返回总的俘获率，泄漏率以及裂变率
-            否侧返回输入cell的俘获率，及裂变率和总的泄露率
+            case1:返回俘获率，泄漏率以及裂变率，返回类型为字典 
+            case2,3,4:仅返回俘获率，返回类型为字典 
         """
+        results = {}
+        if cell is None and nuclides is None:
+            with open(outfile, 'r') as fid:
+                for eachline in fid:
+                    lists = eachline.strip().split()
+                    if 'source' in eachline and 'escape' in eachline:
+                        if lists[1].isnumeric():
+                            results['escape'] = float(lists[6])
+                    if 'prompt fission' in eachline and 'loss to fission' in eachline:
+                        results['lossfission'] = float(lists[9])
+                    if 'photonuclear' in eachline and 'capture' in eachline:
+                        results['capture'] = float(lists[6])
+            return results
+        # cell is not None and nuclides is None:
+        elif nuclides is None:
+            tag  = False
+            content = []
+            capturelists = []
+            with open(outfile, 'r') as fid:
+                for eachline in fid:
+                    lists = eachline.strip().split()
+                    if "neutron activity of each nuclide in each cell, per source particle" in eachline:
+                        tag = True
+                    if "total" in eachline and lists[0] == 'total':
+                        tag = False
+                    if tag:
+                        content.append(lists)
+            
+            for ind, ll in enumerate(content):                
+                if ll and ll[1] == str(cell):
+                    start = ind
+
+            for ind, ll in enumerate(content[start:]):
+                if ll:
+                    if ind == 0:
+                        capturelists.append(float(ll[6]))
+                    else:
+                        capturelists.append(float(ll[4]))
+                else:
+                    break
+            
+            results['capture'] = np.array(capturelists).sum()
+            return results 
+                                       
+        # cell is None and nuclides is not None:
+        elif cell is None:
+            tag  = False
+            content = []
+            with open(outfile, 'r') as fid:
+                for eachline in fid:
+                    lists = eachline.strip().split()
+                    if "total over all cells by nuclide" in eachline:
+                        tag = True
+                    if tag:
+                        if len(lists) == 9 and lists[1].isnumeric():
+                            # print(lists)
+                            content.append(lists)
+                        if content and len(lists) != 9:
+                            tag = False
+            
+            for ll in content:
+                for nuclide in nuclides:
+                    if str(nuclide) in ll[0]:
+                        results[str(nuclide)] = ll[3]
+            
+            return results
         
+        # cell is not None and nuclides is not None:
+        else:
+            tag  = False
+            content = []
+            capturelists = []
+            with open(outfile, 'r') as fid:
+                for eachline in fid:
+                    lists = eachline.strip().split()
+                    if "neutron activity of each nuclide in each cell, per source particle" in eachline:
+                        tag = True
+                    if "total" in eachline and lists[0] == 'total':
+                        tag = False
+                    if tag:
+                        content.append(lists)
+            
+            for ind, ll in enumerate(content):                
+                if ll and ll[1] == str(cell):
+                    start = ind
+
+            content = content[start:]
+            filtercontent = []
+            for ind, ll in enumerate(content):
+                if ll:
+                    if ind == 0:    
+                        filtercontent.append(ll[2:])
+                    else:
+                        filtercontent.append(ll)              
+                else:
+                    break
+            
+            for line in filtercontent:
+                for nuclide in nuclides:
+                    if str(nuclide) in line[0]:
+                        results[str(nuclide)] = line[4]
+            return results
+
+
 
 
 if __name__ == '__main__':
-    import yt
-    groupname = []
     mtr = McnpTallyReader()
-    source = 7.58318e18
-    mtr.readMdataIntoHDF5(source, 'kcord.dat', 'kcod.hdf5')
-    source = 7.00279e15
-    mtr.readMdataIntoHDF5(source, 'fixed.dat', 'fixe.hdf5')
+    test = mtr.readNeutronActivity('cor1o_0_5_5_90', cell=4, nuclides=['90232','11023'])
+
+    for key, value in test.items():
+        print(key,value)
+    # import yt
+    # groupname = []
+    # mtr = McnpTallyReader()
+    # source = 7.58318e18
+    # mtr.readMdataIntoHDF5(source, 'kcord.dat', 'kcod.hdf5')
+    # source = 7.00279e15
+    # mtr.readMdataIntoHDF5(source, 'fixed.dat', 'fixe.hdf5')
 #     with h5py.File("kcode.hdf5", "r") as f:
 #         for group in f:
 #             groupname.append(group)
