@@ -106,8 +106,8 @@ mh = McnpinpHandler()
 mh.cleanup(inp)
 # loop for reflector
 with open("results.out", 'w') as fid, open("search.out", 'w') as fid2:
-    fid.write("{:^10} {:^10} {:^10} {:^10} {:^10} {:^20} {:^20} {:^20} {:^20}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff', 'CR of kcord', 'Escape of kcord', 'CR of fixed', 'Escape of fixed'))
-    fid2.write("{:^10} {:^10} {:^10} {:^10} {:^10} {:^20} {:^20} {:^20} {:^20}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff', 'CR of kcord', 'Escape of kcord', 'CR of fixed', 'Escape of fixed'))
+    fid.write("{:^10} {:^10} {:^10} {:^10} {:^10} {:^20} {:^20} {:^20} {:^20}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff', 'CR of kcode', 'Escape of kcode', 'CR of fixed', 'Escape of fixed'))
+    fid2.write("{:^10} {:^10} {:^10} {:^10} {:^10} {:^20} {:^20} {:^20} {:^20}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff', 'CR of kcode', 'Escape of kcode', 'CR of fixed', 'Escape of fixed'))
 
 for kk in range(0, endreflectorThickness, thicknessStep):
     if kk == 0:
