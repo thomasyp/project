@@ -482,6 +482,9 @@ class McnpTallyReader(object):
         elif cell is None:
             tag  = False
             content = []
+            for nuclide in nuclides:
+                results[str(nuclide)] = 0
+
             with open(outfile, 'r') as fid:
                 for eachline in fid:
                     lists = eachline.strip().split()
@@ -497,7 +500,7 @@ class McnpTallyReader(object):
             for ll in content:
                 for nuclide in nuclides:
                     if str(nuclide) in ll[0]:
-                        results[str(nuclide)] = ll[3]
+                        results[str(nuclide)] = float(ll[3])
             
             return results
         
@@ -506,6 +509,8 @@ class McnpTallyReader(object):
             tag  = False
             content = []
             capturelists = []
+            for nuclide in nuclides:
+                results[str(nuclide)] = 0
             with open(outfile, 'r') as fid:
                 for eachline in fid:
                     lists = eachline.strip().split()
@@ -534,18 +539,31 @@ class McnpTallyReader(object):
             for line in filtercontent:
                 for nuclide in nuclides:
                     if str(nuclide) in line[0]:
-                        results[str(nuclide)] = line[4]
+                        results[str(nuclide)] = float(line[4])
             return results
+
+    def getCR(self, outfile):
+        totRateDic = self.readNeutronActivity(outfile)
+        totfission = totRateDic['lossfission']
+        captureDic = self.readNeutronActivity(outfile, nuclides=['90232', '92234', '94240', '91233', '92238', '92233', '92235', '94239', '94241'])
+        # CR=Rc(Th232 + U234 + U238 + Pu240 -Pa233) / Ra(U233 + U235 + Pu239 + Pu241)
+        CR = (captureDic['90232'] + captureDic['92234'] + captureDic['94240'] + captureDic['92238'] - captureDic['91233'])\
+        /(captureDic['92233'] + captureDic['92235'] + captureDic['94239'] + captureDic['94241'] + totfission)
+        print(CR)
+        return CR
+
+                
+
 
 
 
 
 if __name__ == '__main__':
     mtr = McnpTallyReader()
-    test = mtr.readNeutronActivity('cor1o_0_5_5_90', cell=4, nuclides=['90232','11023'])
-
-    for key, value in test.items():
-        print(key,value)
+    # test = mtr.readNeutronActivity('cor1o_0_5_5_90', cell=4, nuclides=['94239','90232','17042'])
+    cr = mtr.getCR('cor2o-1-1')
+    # for key, value in test.items():
+    #     print(key,value)
     # import yt
     # groupname = []
     # mtr = McnpTallyReader()
