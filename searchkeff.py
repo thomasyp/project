@@ -5,6 +5,7 @@ from compoundcalculator.compound_density import Isotope, Nuclide, Compound, Mate
 import os
 from tool.mcnp_reader import McnpTallyReader
 import argparse
+import re
 
 def changeReflector(inp, step, designator, section='cell'):
     mh = McnpinpHandler()
@@ -16,6 +17,34 @@ def changeReflector(inp, step, designator, section='cell'):
         replacedata = str(float(data)-step)
     newline = line.replace(data, replacedata)
     mh.modifyinp(inp, designator, newline, section)
+
+def changeMode(inp, mode):
+    with open(inp, 'r', encoding="utf-8") as fid:
+        content = fid.readlines()
+    if mode == 'fixed':
+        fixedSource = 'sdef  axs=0 0 1 pos=0 0 0 ext=d1 rad=d2  erg=d3 par=1\nsi1    -10 10\nsp1   0   1\nsi2    0  10\nsp2    -21 1\nSI3   L  0.151 0.248 0.410 0.675 1.11 1.84 3.03 4.99 19.64\nSP3      0.0 5.45e-2 5.0e-2 8.0e-2 0.122 0.165 0.178 0.157 0.1985\nnps   50000\n'            
+        with open(inp, 'w', encoding="utf-8") as f:
+            for line in content:
+                lists = line.strip().split()
+                if lists and re.match('kcode', lists[0], re.I) is not None:
+                    f.write(fixedSource)
+                elif lists and re.match('ksrc', lists[0], re.I) is not None:
+                    pass
+                else:
+                    f.write(line)
+    if mode == 'kcode':
+        kcodeSource = 'kcode    20000 1.0 30 250\nksrc   50. 0. 0. -50 0 0  -0 0 0  0 0 20\n'
+        with open(inp, 'w', encoding="utf-8") as f:
+            for line in content:
+                lists = line.strip().split()
+                if lists and re.match('sdef', lists[0], re.I) is not None:
+                    f.write(kcodeSource)
+                elif lists and re.match('si|sp|sc|ds[0-9]{1,3}', lists[0], re.I) is not None:
+                    pass
+                elif lists and re.match('nps', lists[0], re.I) is not None:
+                    pass
+                else:
+                    f.write(line)
 
 u235 = Isotope('U235', 92, 235.043923)
 u238 = Isotope('U238', 92, 238.050783)
@@ -59,24 +88,27 @@ ucl3 = Compound('UCl3', pucl3dict, 6.3747, 1.5222e-3)
 # bef2 = Compound('BeF2', bef2dict, 1.9602115)
 matdict = {}
 mtr = McnpTallyReader()
-# parser=argparse.ArgumentParser(description='input file name, node and ppn')
-# parser.add_argument('-n',action="store",dest="node",type=int,default=1)
-# parser.add_argument('-p',action="store",dest="ppn",type=int,default=1)
-# parser.add_argument('inp',action="store",type=str)
-# args=parser.parse_args()
-# print('inputfile=%s' %args.inp,'ppn=%s' %args.ppn)
-# inp = args.inp
-# node = args.node
-# ppn = args.ppn
-inp = 'cor1'
+parser=argparse.ArgumentParser(description='input file name, node and ppn')
+parser.add_argument('-n',action="store",dest="node",type=int,default=1)
+parser.add_argument('-p',action="store",dest="ppn",type=int,default=1)
+parser.add_argument('inp',action="store",type=str)
+args=parser.parse_args()
+print('inputfile=%s' %args.inp,'ppn=%s' %args.ppn)
+inp = args.inp
+node = args.node
+ppn = args.ppn
+
 results = {}
-# startmolnacl = 80
 startmolnacl = 80
-endreflectorThickness = 5
+endreflectorThickness = 60
 thicknessStep = 5
 mh = McnpinpHandler()
 mh.cleanup(inp)
 # loop for reflector
+with open("results.out", 'w') as fid, open("search.out", 'w') as fid2:
+    fid.write("{:^10} {:^10} {:^10} {:^10} {:^10} {:^20} {:^20} {:^20} {:^20}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff', 'CR of kcord', 'Escape of kcord', 'CR of fixed', 'Escape of fixed'))
+    fid2.write("{:^10} {:^10} {:^10} {:^10} {:^10} {:^20} {:^20} {:^20} {:^20}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff', 'CR of kcord', 'Escape of kcord', 'CR of fixed', 'Escape of fixed'))
+
 for kk in range(0, endreflectorThickness, thicknessStep):
     if kk == 0:
         changeReflector(inp, 0, '15', 'surface')
@@ -93,10 +125,17 @@ for kk in range(0, endreflectorThickness, thicknessStep):
         changeReflector(inp, thicknessStep, '19', 'surface')
         changeReflector(inp, thicknessStep, '20', 'surface')
     # loop for nacl 
-    for ii in range(startmolnacl, 0, -5):
+    for ii in range(startmolnacl, 28, -2):
         matdict[nacl] = ii
         # loop for pucl    
-        for jj in range(100-ii, 0, -5):     
+        # for jj in range(100-ii, 0, -2): 
+        for jj in range(100-ii, 8, -2):
+            ## set initials
+            results['kCR'] = 0  # CR of kcode mode
+            results['fCR'] = 0  # CR of fixed mode
+            results['kescape'] = 0 # escape of kcode mode
+            results['fescape'] = 0 # escape of fixed mode
+
             matdict[pucl3] = jj        
             matdict[thcl4] = 100 - ii - jj
             mat = Material('mat1', matdict, 900)
@@ -113,28 +152,50 @@ for kk in range(0, endreflectorThickness, thicknessStep):
             newline = line.replace(line.strip().split()[2], '-{:.4f}'.format(density))
             print(newline)
             mh.modifyinp(inp, '4', newline)
-            os.system('mcnp5'+ ' n=' + inp)
-            # os.system('mpirun -r ssh -np '+ str(int(node*ppn)) +' /home/daiye/bin/mcnp5.mpi n=' + inp)
+            changeMode(inp, mode='kcode')
+            # os.system('mcnp5'+ ' n=' + inp)
+            os.system('mpirun -r ssh -np '+ str(int(node*ppn)) +' /home/daiye/bin/mcnp5.mpi n=' + inp)
             if os.path.isfile(inp+'o'):
                 print('MCNP5 run finished!')
-                result = mtr.readKeff(inp+'o')
+                results['keff'] = mtr.readKeff(inp+'o')['keff']
+                results['kCR'] = mtr.getCR(inp+'o')
+                k_totrate = mtr.readNeutronActivity(inp+'o')
+                results['kescape'] = k_totrate['escape']/(k_totrate['escape']+k_totrate['lossfission']+k_totrate['capture']) # escape of kcode mode
                 if os.path.isfile(inp+'o'):
                     oldfilename = inp+'o'
-                    newfilename = inp+'o_'+str(kk)+'_'+str(matdict[nacl])+'_'+str(matdict[pucl3])+'_'+str(matdict[thcl4])
+                    newfilename = inp+'ko_'+str(kk)+'_'+str(matdict[nacl])+'_'+str(matdict[pucl3])+'_'+str(matdict[thcl4])
                     mh.deleteFiles(newfilename)
                     os.rename(oldfilename, newfilename)
                 mh.cleanup(inp)
             else:
                 print('error!!!,MCNP5 run failed!')
                 exit(0)
-            results[(kk, matdict[nacl], matdict[pucl3], matdict[thcl4])] = result['keff']
-            print("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format(kk, matdict[nacl], matdict[pucl3], matdict[thcl4], result['keff']))
+            if results['keff'] < 0.998:
+                changeMode(inp, mode='fixed') 
+                # os.system('mcnp5'+ ' n=' + inp)
+                os.system('mpirun -r ssh -np '+ str(int(node*ppn)) +' /home/daiye/bin/mcnp5.mpi n=' + inp)
+                if os.path.isfile(inp+'o'):
+                    print('MCNP5 run finished!')
+                    results['fCR'] = mtr.getCR(inp+'o')
+                    f_totrate = mtr.readNeutronActivity(inp+'o')
+                    results['fescape'] = f_totrate['escape']/(f_totrate['escape']+f_totrate['lossfission']+f_totrate['capture'])
+                if os.path.isfile(inp+'o'):
+                    oldfilename = inp+'o'
+                    newfilename = inp+'fo_'+str(kk)+'_'+str(matdict[nacl])+'_'+str(matdict[pucl3])+'_'+str(matdict[thcl4])
+                    mh.deleteFiles(newfilename)
+                    os.rename(oldfilename, newfilename)
+                mh.cleanup(inp)
+            
+            results['nacl'] = matdict[nacl] # molar of nacl
+            results['pucl3'] = matdict[pucl3]
+            results['thcl4'] = matdict[thcl4]
+            results['thickness'] = kk
 
-with open("results.out", 'w') as fid, open("search.out", 'w') as fid2:
-    fid.write("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff'))
-    fid2.write("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff'))
-    for key, value in results.items():
-        fid2.write("{0[0]:<10} {0[1]:<10} {0[2]:<10} {0[3]:<10} {1:<10}\n".format(key, value))
-        if float(value) > 0.97 and float(value)<0.99:
-            fid.write("{0[0]:<10} {0[1]:<10} {0[2]:<10} {0[3]:<10} {1:<10}\n".format(key, value))
+            # results[(kk, matdict[nacl], matdict[pucl3], matdict[thcl4])] = result['keff']
+            # print("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format(kk, matdict[nacl], matdict[pucl3], matdict[thcl4], result['keff']))
+
+            with open("results.out", 'a') as fid, open("search.out", 'a') as fid2: 
+                fid2.write("{thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
+                if float(results['keff']) > 0.97 and float(results['keff'])<0.99:
+                    fid.write("{thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
 
