@@ -105,7 +105,9 @@ thicknessStep = 5
 mh = McnpinpHandler()
 mh.cleanup(inp)
 # loop for reflector
-with open("results.out", 'w') as fid, open("search.out", 'w') as fid2:
+resultfile = inp + 'results.out'
+seachoutfile = inp + 'search.out'
+with open(resultfile, 'w') as fid, open(seachoutfile, 'w') as fid2:
     fid.write("{:^10} {:^10} {:^10} {:^10} {:^10} {:^20} {:^20} {:^20} {:^20}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff', 'CR of kcode', 'Escape of kcode', 'CR of fixed', 'Escape of fixed'))
     fid2.write("{:^10} {:^10} {:^10} {:^10} {:^10} {:^20} {:^20} {:^20} {:^20}\n".format('Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff', 'CR of kcode', 'Escape of kcode', 'CR of fixed', 'Escape of fixed'))
 
@@ -194,7 +196,7 @@ for kk in range(0, endreflectorThickness, thicknessStep):
             # results[(kk, matdict[nacl], matdict[pucl3], matdict[thcl4])] = result['keff']
             # print("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format(kk, matdict[nacl], matdict[pucl3], matdict[thcl4], result['keff']))
 
-            with open("results.out", 'a') as fid, open("search.out", 'a') as fid2: 
+            with open(resultfile, 'w') as fid, open(seachoutfile, 'w') as fid2: 
                 fid2.write("{thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
                 if float(results['keff']) > 0.97 and float(results['keff'])<0.99:
                     fid.write("{thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
