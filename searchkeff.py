@@ -91,17 +91,35 @@ mtr = McnpTallyReader()
 parser=argparse.ArgumentParser(description='input file name, node and ppn')
 parser.add_argument('-n',action="store",dest="node",type=int,default=1)
 parser.add_argument('-p',action="store",dest="ppn",type=int,default=1)
+parser.add_argument('-t',action="store",dest="thicknessStep",type=int,default=100)
+parser.add_argument('-na',action="store",dest="startmolnacl",type=int,default=90)
+parser.add_argument('-sna',action="store",dest="stepmolnacl",type=int,default=10)
+parser.add_argument('-pu',action="store",dest="startmolpucl",type=int,default=25)
+parser.add_argument('-spu',action="store",dest="stepmolpucl",type=int,default=-2)
 parser.add_argument('inp',action="store",type=str)
 args=parser.parse_args()
 print('inputfile=%s' %args.inp,'ppn=%s' %args.ppn)
 inp = args.inp
 node = args.node
 ppn = args.ppn
+startmolnacl = args.startmolnacl
+stepmolnacl = args.stepmolnacl
+startmolpucl = args.startmolpucl
+stepmolpucl = args.stepmolpucl
+
+if stepmolnacl > 0:
+    stepmolnacl = -1 * stepmolnacl
+if stepmolpucl > 0:
+    stepmolpucl = -1 * stepmolpucl
+endreflectorThickness = args.thicknessStep
+print('startmolnacl:', startmolnacl)
+print('stepmolnacl:', stepmolnacl)
+print('startmolpucl:', startmolpucl)
+print('stepmolpucl:', stepmolpucl)
+print('endreflectorThickness:', endreflectorThickness)
 
 results = {}
-startmolnacl = 80
-endreflectorThickness = 60
-thicknessStep = 5
+thicknessStep = 10
 mh = McnpinpHandler()
 mh.cleanup(inp)
 # loop for reflector
@@ -127,11 +145,12 @@ for kk in range(0, endreflectorThickness, thicknessStep):
         changeReflector(inp, thicknessStep, '19', 'surface')
         changeReflector(inp, thicknessStep, '20', 'surface')
     # loop for nacl 
-    for ii in range(startmolnacl, 28, -2):
+    for ii in range(startmolnacl, 20, stepmolnacl):
         matdict[nacl] = ii
         # loop for pucl    
-        # for jj in range(100-ii, 0, -2): 
-        for jj in range(100-ii, 8, -2):
+        for jj in range(100-ii, 0, stepmolpucl): 
+            if jj > startmolpucl:
+                continue
             ## set initials
             results['kCR'] = 0  # CR of kcode mode
             results['fCR'] = 0  # CR of fixed mode
@@ -196,7 +215,7 @@ for kk in range(0, endreflectorThickness, thicknessStep):
             # results[(kk, matdict[nacl], matdict[pucl3], matdict[thcl4])] = result['keff']
             # print("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format(kk, matdict[nacl], matdict[pucl3], matdict[thcl4], result['keff']))
 
-            with open(resultfile, 'w') as fid, open(seachoutfile, 'w') as fid2: 
+            with open(resultfile, 'a') as fid, open(seachoutfile, 'a') as fid2: 
                 fid2.write("{thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
                 if float(results['keff']) > 0.97 and float(results['keff'])<0.99:
                     fid.write("{thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
