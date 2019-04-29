@@ -27,7 +27,7 @@ Plugin 'altercation/vim-colors-solarized'
 Plugin 'endel/vim-github-colorscheme'
 " Awesome looking meta at bottom
 " Fugitive will help with git related stuff, and show branch on statusline
-Plugin 'tpope/vim-fugitive' 
+Plugin 'tpope/vim-fugitive'
 Plugin 'vim-airline/vim-airline-themes'
 
 Plugin 'Chiel92/vim-autoformat'
@@ -41,7 +41,7 @@ Plugin 'vim-scripts/khaki.vim'
 set helplang=cn
 " " 设置为双字宽显示，否则无法完整显示如:☆
 set ambiwidth=double
-" " 总是显示状态栏 
+" " 总是显示状态栏
 let laststatus = 2
 " let g:airline_powerline_fonts = 1   " 使用powerline打过补丁的字体
 " " 开启tabline
@@ -50,7 +50,7 @@ let g:airline#extensions#tabline#enabled = 1
 let g:airline#extensions#tabline#left_sep = ' '
 " "tabline中未激活buffer两端的分隔字符
 " "tabline中buffer显示编号
-let g:airline#extensions#tabline#buffer_nr_show = 1 
+let g:airline#extensions#tabline#buffer_nr_show = 1
 
 " These lines setup the environment to show graphics and colors correctly.
 
@@ -75,8 +75,8 @@ let NERDCompactSexyComs=1
 "将行注释符左对齐
 let g:NERDDefaultAlign = 'left'
 "加注释<leader>cc
-"解开注释  <leader>cu   
-"加上/解开注释, 智能判断<leader>c<space>  
+"解开注释  <leader>cu
+"加上/解开注释, 智能判断<leader>c<space>
 "先复制, 再注解(p可以进行黏贴)<leader>cy   先复制, 再注解(p可以进行黏贴)
 
 
@@ -94,10 +94,10 @@ let g:autoformat_autoindent = 0
 let g:autoformat_retab = 0
 let g:autoformat_remove_trailing_spaces = 0
 
-if !has("gui_running")                                          
-    set t_Co=256                                                
-endif                                                                                         
-colorscheme khaki 
+if !has("gui_running")
+    set t_Co=256
+endif
+colorscheme khaki
 
 " jedi sets
 let g:SuperTabDefaultCompletionType = "context"

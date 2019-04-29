@@ -1,6 +1,6 @@
 #!/home/yangpu/bin/anaconda3/bin/python
 # -*- coding: utf-8 -*-
-from tool.handle_mcnpinp import McnpinpHandler 
+from tool.handle_mcnpinp import McnpinpHandler
 from compoundcalculator.compound_density import Isotope, Nuclide, Compound, Material
 import os
 from tool.mcnp_reader import McnpTallyReader
@@ -22,7 +22,7 @@ def changeMode(inp, mode):
     with open(inp, 'r', encoding="utf-8") as fid:
         content = fid.readlines()
     if mode == 'fixed':
-        fixedSource = 'sdef  axs=0 0 1 pos=0 0 0 ext=d1 rad=d2  erg=d3 par=1\nsi1    -10 10\nsp1   0   1\nsi2    0  10\nsp2    -21 1\nSI3   L  0.151 0.248 0.410 0.675 1.11 1.84 3.03 4.99 19.64\nSP3      0.0 5.45e-2 5.0e-2 8.0e-2 0.122 0.165 0.178 0.157 0.1985\nnps   50000\n'            
+        fixedSource = 'sdef  axs=0 0 1 pos=0 0 0 ext=d1 rad=d2  erg=d3 par=1\nsi1    -10 10\nsp1   0   1\nsi2    0  10\nsp2    -21 1\nSI3   L  0.151 0.248 0.410 0.675 1.11 1.84 3.03 4.99 19.64\nSP3      0.0 5.45e-2 5.0e-2 8.0e-2 0.122 0.165 0.178 0.157 0.1985\nnps   50000\n'
         with open(inp, 'w', encoding="utf-8") as f:
             for line in content:
                 lists = line.strip().split()
@@ -49,7 +49,7 @@ def changeMode(inp, mode):
 u235 = Isotope('U235', 92, 235.043923)
 u238 = Isotope('U238', 92, 238.050783)
 th232 = Isotope('Th232', 90, 232.03805)
-pu239 = Isotope('Pu239', 94, 239.0) 
+pu239 = Isotope('Pu239', 94, 239.0)
 f19 = Isotope('F19', 9, 18.998403)
 be9 = Isotope('Be9', 4, 9.012182)
 li6 = Isotope('li6', 3, 9.012182)
@@ -144,11 +144,11 @@ for kk in range(0, endreflectorThickness, thicknessStep):
         changeReflector(inp, thicknessStep, '18', 'surface')
         changeReflector(inp, thicknessStep, '19', 'surface')
         changeReflector(inp, thicknessStep, '20', 'surface')
-    # loop for nacl 
+    # loop for nacl
     for ii in range(startmolnacl, 20, stepmolnacl):
         matdict[nacl] = ii
-        # loop for pucl    
-        for jj in range(100-ii, 0, stepmolpucl): 
+        # loop for pucl
+        for jj in range(100-ii, 0, stepmolpucl):
             if jj > startmolpucl:
                 continue
             ## set initials
@@ -157,7 +157,7 @@ for kk in range(0, endreflectorThickness, thicknessStep):
             results['kescape'] = 0 # escape of kcode mode
             results['fescape'] = 0 # escape of fixed mode
 
-            matdict[pucl3] = jj        
+            matdict[pucl3] = jj
             matdict[thcl4] = 100 - ii - jj
             mat = Material('mat1', matdict, 900)
             # print(uf4.getActomicMass())
@@ -192,7 +192,7 @@ for kk in range(0, endreflectorThickness, thicknessStep):
                 print('error!!!,MCNP5 run failed!')
                 exit(0)
             if results['keff'] < 0.998:
-                changeMode(inp, mode='fixed') 
+                changeMode(inp, mode='fixed')
                 # os.system('mcnp5'+ ' n=' + inp)
                 os.system('mpirun -r ssh -np '+ str(int(node*ppn)) +' /home/daiye/bin/mcnp5.mpi n=' + inp)
                 if os.path.isfile(inp+'o'):
@@ -206,7 +206,7 @@ for kk in range(0, endreflectorThickness, thicknessStep):
                     mh.deleteFiles(newfilename)
                     os.rename(oldfilename, newfilename)
                 mh.cleanup(inp)
-            
+
             results['nacl'] = matdict[nacl] # molar of nacl
             results['pucl3'] = matdict[pucl3]
             results['thcl4'] = matdict[thcl4]
@@ -215,7 +215,7 @@ for kk in range(0, endreflectorThickness, thicknessStep):
             # results[(kk, matdict[nacl], matdict[pucl3], matdict[thcl4])] = result['keff']
             # print("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format(kk, matdict[nacl], matdict[pucl3], matdict[thcl4], result['keff']))
 
-            with open(resultfile, 'a') as fid, open(seachoutfile, 'a') as fid2: 
+            with open(resultfile, 'a') as fid, open(seachoutfile, 'a') as fid2:
                 fid2.write("{thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
                 if float(results['keff']) > 0.97 and float(results['keff'])<0.99:
                     fid.write("{thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
