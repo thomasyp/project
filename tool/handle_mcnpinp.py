@@ -1,4 +1,4 @@
-#!/home/yangpu/bin/anaconda3/bin/python
+./bin/anaconda3/bin/python
 # -*- coding: utf-8 -*-
 """
 Created on Thu Nov 26 10:15:47 2018
