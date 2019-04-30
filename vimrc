@@ -25,6 +25,22 @@ set bs=2 " make backspace behave like normal again
 " it is next to ``m`` and ``n`` which I use for navigating between tabs.
 let mapleader = ","
 
+" parenthese automatically complete
+inoremap ( ()<ESC>i
+inoremap [ []<ESC>i
+inoremap { {}<ESC>i
+inoremap < <><ESC>i
+
+" ex mode commands made easy
+nnoremap ; :
+
+" do undo settings
+nnoremap U <C-r>
+
+" select all
+map <Leader>sa ggVG
+
+
 " quick mode swith
 inoremap jj <Esc>
 
@@ -220,6 +236,7 @@ inoremap <silent><C-k> <C-R>=OmniPopup('k')<CR>
 " mkdir -p ~/.vim/ftplugin
 " wget -O ~/.vim/ftplugin/python_editing.vim http://www.vim.org/scripts/download_script.php?src_id=5492
 set nofoldenable
+set foldlevel=100
 
 " Neocomplete
 " let g:neocomplete#enable_at_startup = 1
