@@ -59,7 +59,11 @@ class Vim(object):
                           'https://github.com/scrooloose/nerdtree',
                           'https://github.com/klen/python-mode.git',
                           'https://github.com/Lokaltog/vim-powerline.git',
-                          'https://github.com/jistr/vim-nerdtree-tabs.git']
+                          'https://github.com/jistr/vim-nerdtree-tabs.git',
+                          'https://github.com/kien/rainbow_parentheses.vim',
+                          'https://github.com/Chiel92/vim-autoformat',
+                          'https://github.com/vim-scripts/The-NERD-Commenter',
+                          'https://github.com/ervandew/supertab']
 
         self.apt_packages = 'vim git-core'
 
