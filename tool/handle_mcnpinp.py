@@ -1,4 +1,4 @@
-./bin/anaconda3/bin/python
+#!/home/yangpu/bin/anaconda3/bin/python
 # -*- coding: utf-8 -*-
 """
 Created on Thu Nov 26 10:15:47 2018
@@ -11,17 +11,16 @@ import os
 class McnpinpHandler(object):
     def __init__(self):
         pass
-    
+
     def readContent(self, inpname, designator, section='cell'):
         """
             Function: read content from  mcnp input card.
-            Parameters: 
-                inpname: the name of mcnp input card which need to be modfied. 
+            Parameters:
+                inpname: the name of mcnp input card which need to be modfied.
                 designator: the designator in mcnp input, which indicate the part in mcnp input need to be
                 read.
-            Return: 
+            Return:
                 line: read context.
-        
         """
         if section == 'cell':
             numsp = 0
@@ -35,7 +34,7 @@ class McnpinpHandler(object):
         with open(inpname, 'r', encoding="utf-8") as fid:
             content = fid.readlines()
         line = ''
-        numSeparator = 0 
+        numSeparator = 0
         for eachline in content:
             if eachline.strip() == '':
                 lists = line.strip().split()
@@ -53,19 +52,19 @@ class McnpinpHandler(object):
             else:
                 line = line + eachline
         return line
-        
+
 
     def modifyinp(self, inpname, designator, modifiedline, section='cell'):
         """
             Function: modify mcnp input card by modifiedline.
-            Parameters: 
-                inpname: the name of mcnp input card which need to be modfied. 
+            Parameters:
+                inpname: the name of mcnp input card which need to be modfied.
                 designator: the designator in mcnp input, which indicate the part in mcnp input need to be
                 modifid.
                 modifiedline: Modified content.
-            Return: 
+            Return:
                 normalizecontent: none.
-        
+
         """
 
         if section == 'cell':
@@ -79,16 +78,16 @@ class McnpinpHandler(object):
             return -1
         with open(inpname, 'r', encoding="utf-8") as fid:
             content = fid.readlines()
-            
+
         with open(inpname, 'w', encoding="utf-8") as f:
             line = ''
-            numSeparator = 0 
+            numSeparator = 0
             for eachline in content:
                 # print(eachline)
                 if eachline.strip() != '' and eachline.split()[0] == 'c':
                     continue
                 if eachline.strip() == '':
-                    
+
                     lists = line.strip().split()
                     if len(lists) !=0 and lists[0] == designator and numSeparator == numsp:
                         line = self.normalize(modifiedline)
@@ -110,15 +109,15 @@ class McnpinpHandler(object):
                 else:
                     line = line + eachline
             f.write(line)
-                    
+
     def normalize(self, line):
         """
             Function: modify the format of the line, make sure it won't exceed 80 rows.
-            Parameters: 
-                line: the content whos format need to be modfied.  
-            Return: 
+            Parameters:
+                line: the content whos format need to be modfied.
+            Return:
                 normalizecontent: the content after modifed format.
-        
+
         """
         eachlinelenthlimt = 75
         normalizecontent = ''
@@ -132,16 +131,16 @@ class McnpinpHandler(object):
                 normalizeline = lists[i] + fivespace
             else:
                 normalizeline = fivespace + lists[i]
-            i = i + 1    
+            i = i + 1
             linelenth = 0
             while linelenth < eachlinelenthlimt and i < lenth:
                     if linelenth + len(lists[i]) > eachlinelenthlimt:
-                        break                             
+                        break
                     normalizeline =  normalizeline + ' ' + lists[i]
                     i = i + 1
                     linelenth = len(normalizeline)
             normalizecontent =  normalizecontent + normalizeline + '\n'
-        
+
         return normalizecontent
 
     def deleteFiles(self, inp):
@@ -153,7 +152,7 @@ class McnpinpHandler(object):
             Function: Clean up mcnp output file including 'out','runtpe' and 'srctp', 'meshtal'.
             Parameters: inp: the name of mcnp input file.
             Return: none
-        
+
         """
         if os.path.isfile(inp+'s'):
             os.remove(inp+'s')
@@ -177,7 +176,7 @@ if __name__ == "__main__":
     mh.modifyinp('cor4.txt', '99', line)
     line = mh.readContent('cor4.txt', '4')
     print(line)
-    
 
 
-        
+
+

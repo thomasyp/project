@@ -309,7 +309,7 @@ class McnpTallyReader(object):
         Input parameter:
             需要读取的 mdata文件名：mdataFileName
             需要写入的 hdf5文件名：hdfFileName
-           
+
         Return:
             0
         """
@@ -352,19 +352,19 @@ class McnpTallyReader(object):
                         nx = nxnynz[readid][0]
                         ny = nxnynz[readid][1]
                         nz = nxnynz[readid][2]
-                        # rectangular mesh : 网格数据个数为(nx - 1) * (ny - 1) * (nz - 1) 
+                        # rectangular mesh : 网格数据个数为(nx - 1) * (ny - 1) * (nz - 1)
                         if methType[readid] == '1':
                             nmeshs = (nx - 1) * (ny - 1) * (nz - 1)
                             dimension = [int(nx - 1), int(ny - 1), int(nz - 1)]
                             hdfid[grouplists[readid]].create_dataset(
                                 'dimension', data=dimension)
-                        # cylindrical mesh: nz 为角向，0到360    
+                        # cylindrical mesh: nz 为角向，0到360
                         elif methType[readid] == '2':
                             nmeshs = (nx - 1) * (ny - 1) * nz
                             dimension = [int(nx - 1), int(ny - 1), int(nz)]
                             hdfid[grouplists[readid]].create_dataset(
                                 'dimension', data=dimension)
-                        # spherical mesh: ny 为角向，0到180; nz 为角向，0到360    
+                        # spherical mesh: ny 为角向，0到180; nz 为角向，0到360
                         elif methType[readid] == '3':
                             nmeshs = (nx - 1) * ny * nz
                             dimension = [int(nx - 1), int(ny), int(nz)]
@@ -391,14 +391,14 @@ class McnpTallyReader(object):
                         hdfid[grouplists[readid-1]].create_dataset('ZCoordinate', data=dd)
                     # 写入统计结果和误差
                     if isNewTallySegment == False and lenth == sum([nx, ny, nz, 2*nmeshs]):
-                        arrd =  [float(x) * source for x in data[sum([nx, ny, nz]):sum([nx, ny, nz, nmeshs])]] 
+                        arrd =  [float(x) * source for x in data[sum([nx, ny, nz]):sum([nx, ny, nz, nmeshs])]]
                         dd = np.array(arrd).reshape(dimension[0], dimension[1], dimension[2])
                         hdfid[grouplists[readid-1]].create_dataset('data', data=dd)
-                        arrd = [float(x) for x in data[sum([nx, ny, nz, nmeshs]):]] 
-                        dd = np.array(arrd).reshape(dimension[0], dimension[1], dimension[2])                      
+                        arrd = [float(x) for x in data[sum([nx, ny, nz, nmeshs]):]]
+                        dd = np.array(arrd).reshape(dimension[0], dimension[1], dimension[2])
                         hdfid[grouplists[readid-1]].create_dataset('error', data=dd)
-                        isNewTallySegment = True 
-                       
+                        isNewTallySegment = True
+
                 if nlines > 2 and not readDataTag:
                     headerdata += lists
                     lenth = len(headerdata)
@@ -406,7 +406,7 @@ class McnpTallyReader(object):
                         grouplists = [x for x in hdfid]
                         for ii in range(numtallys):
                             dd = [int(x) for x in headerdata[ii *
-                                                             lenthofHeader+3:ii*lenthofHeader+6]]                                                      
+                                                             lenthofHeader+3:ii*lenthofHeader+6]]
                             nxnynz.append(dd)
                             methType.append(headerdata[ii*lenthofHeader+1][0])
                         readDataTag = True
@@ -431,8 +431,8 @@ class McnpTallyReader(object):
             需要读取俘获率的 cell 类型为lists
             需要读取俘获率的 nuclides 类型为lists
         Return:
-            case1:返回俘获率，泄漏率以及裂变率，返回类型为字典 
-            case2,3,4:仅返回俘获率，返回类型为字典 
+            case1:返回俘获率，泄漏率以及裂变率，返回类型为字典
+            case2,3,4:仅返回俘获率，返回类型为字典
         """
         results = {}
         if cell is None and nuclides is None:
@@ -461,8 +461,8 @@ class McnpTallyReader(object):
                         tag = False
                     if tag:
                         content.append(lists)
-            
-            for ind, ll in enumerate(content):                
+
+            for ind, ll in enumerate(content):
                 if ll and ll[1] == str(cell):
                     start = ind
 
@@ -474,10 +474,10 @@ class McnpTallyReader(object):
                         capturelists.append(float(ll[4]))
                 else:
                     break
-            
+
             results['capture'] = np.array(capturelists).sum()
-            return results 
-                                       
+            return results
+
         # cell is None and nuclides is not None:
         elif cell is None:
             tag  = False
@@ -496,14 +496,14 @@ class McnpTallyReader(object):
                             content.append(lists)
                         if content and len(lists) != 9:
                             tag = False
-            
+
             for ll in content:
                 for nuclide in nuclides:
                     if str(nuclide) in ll[0]:
                         results[str(nuclide)] = float(ll[3])
-            
+
             return results
-        
+
         # cell is not None and nuclides is not None:
         else:
             tag  = False
@@ -520,8 +520,8 @@ class McnpTallyReader(object):
                         tag = False
                     if tag:
                         content.append(lists)
-            
-            for ind, ll in enumerate(content):                
+
+            for ind, ll in enumerate(content):
                 if ll and ll[1] == str(cell):
                     start = ind
 
@@ -529,13 +529,13 @@ class McnpTallyReader(object):
             filtercontent = []
             for ind, ll in enumerate(content):
                 if ll:
-                    if ind == 0:    
+                    if ind == 0:
                         filtercontent.append(ll[2:])
                     else:
-                        filtercontent.append(ll)              
+                        filtercontent.append(ll)
                 else:
                     break
-            
+
             for line in filtercontent:
                 for nuclide in nuclides:
                     if str(nuclide) in line[0]:
@@ -586,7 +586,7 @@ if __name__ == '__main__':
 # #         p.set_zlim('err', 0, 1)
 # #         # p.set_background_color('err','red')
 #         p.save()
-        
+
     # mtr.readLatticeData2dat('pow.log',fuel=36)
     # tallys = {'fuel in active region':6, "grapht in active region":16, \
     # 'bypass':26, "primary container":36, "top plenum":46, "top support plate":56,\
@@ -639,5 +639,5 @@ if __name__ == '__main__':
 #         p.save()
    # d = np.array(data[1])
     # print data[0]
-     
+
 #    data = mtr.readKeff("fast.log")
