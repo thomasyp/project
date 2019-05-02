@@ -7,6 +7,7 @@ Created on Thu Nov 26 10:15:47 2018
 """
 
 import os
+import re
 
 class McnpinpHandler(object):
     def __init__(self):
@@ -36,6 +37,7 @@ class McnpinpHandler(object):
         line = ''
         numSeparator = 0
         for eachline in content:
+            # empty line case
             if eachline.strip() == '':
                 lists = line.strip().split()
                 if len(lists) !=0 and lists[0] == designator and numSeparator == numsp:
@@ -43,12 +45,17 @@ class McnpinpHandler(object):
                 else:
                     line = eachline
                 numSeparator += 1
-            elif eachline[0] != ' ':
+            # mcnp card start line case
+            elif eachline[0] != ' ' and re.match(eachline.split()[0], 'c', re.I) is None:
                 lists = line.strip().split()
                 if len(lists) !=0 and lists[0] == designator and numSeparator == numsp:
                     return line
                 else:
                     line = eachline
+            # annotation line case
+            elif eachline[0] != ' ' and re.match(eachline.split()[0], 'c', re.I) is not None:
+                pass
+            # mcnp card continuation line case
             else:
                 line = line + eachline
         return line

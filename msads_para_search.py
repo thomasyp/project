@@ -8,21 +8,37 @@ import os
 import re
 
 
-def readinp(inp):
-    naclsettings = []
-    puclsettings = []
-    reflectorsettings = []
+def readinp(inp, cardlist=None):
+    results = {}
+    if cardlist:
+        for card in cardlist:
+            results[card] = []
+    else:
+        return None
+
+    mcnpline = ''
     with open(inp, 'r') as fid:
         for line in fid:
-            lists = line.strip().split()
-            if bool(lists):
-                if re.match('naclset', lists[0], re.I) is not None:
-                    naclsettings = [float(x) for x in lists[1:]]
-                if re.match('puclset', lists[0], re.I) is not None:
-                    puclsettings = [float(x) for x in lists[1:]]
-                if re.match('reflectorset', lists[0], re.I) is not None:
-                    reflectorsettings = [float(x) for x in lists[1:]]
-    return naclsettings, puclsettings, reflectorsettings
+            
+            if line[0].isspace():
+                mcnpline += line
+            elif re.match(line.split()[0], 'c', re.I) is not None:
+                pass
+            else:
+                lists = mcnpline.strip().split()
+                
+                if bool(lists):
+                    for card in cardlist:
+                        if re.match(card, lists[0], re.I) is not None:
+                            results[card] = [float(x) for x in lists[1:]]
+                mcnpline = line
+        lists = mcnpline.strip().split()
+        if bool(lists):
+            for card in cardlist:
+                if re.match(card, lists[0], re.I) is not None:
+                    results[card] = [float(x) for x in lists[1:]]
+    return results
+
 
 def deleteNoneMcnpCard(inp):
     with open(inp, 'r') as fid, open(inp+'bp', 'w') as fid2:
@@ -83,11 +99,14 @@ def changeMode(inp, mode):
                 else:
                     f.write(line)
 
-x, y, z = readinp('co25')
-print(x)
-print(y)
-print(z)
-deleteNoneMcnpCard('co25')
+tst = readinp('co25', cardlist=['test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7'])
+print(tst)
+cardlist=['test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7']
+
+mh = McnpinpHandler()
+for card in cardlist:
+    line = mh.readContent('co25', card, section='data')
+    print(line)
 #u235 = Isotope('U235', 92, 235.043923)
 #u238 = Isotope('U238', 92, 238.050783)
 #th232 = Isotope('Th232', 90, 232.03805)
