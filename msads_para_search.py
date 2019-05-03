@@ -19,14 +19,12 @@ def readinp(inp, cardlist=None):
     mcnpline = ''
     with open(inp, 'r') as fid:
         for line in fid:
-            
             if line[0].isspace():
                 mcnpline += line
             elif re.match(line.split()[0], 'c', re.I) is not None:
                 pass
             else:
                 lists = mcnpline.strip().split()
-                
                 if bool(lists):
                     for card in cardlist:
                         if re.match(card, lists[0], re.I) is not None:
@@ -99,14 +97,18 @@ def changeMode(inp, mode):
                 else:
                     f.write(line)
 
-tst = readinp('co25', cardlist=['test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7'])
-print(tst)
-cardlist=['test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7']
+
+cardlist=['naclsets', 'puclsets', 'coresizesets']
 
 mh = McnpinpHandler()
+paralists = []
 for card in cardlist:
     line = mh.readContent('co25', card, section='data')
-    print(line)
+    lists = line.strip().split()
+    paralists.append([float(x) for x in lists[1:]])
+    para = {card: para for card, para in zip(cardlist, paralists)}
+
+print(para)
 #u235 = Isotope('U235', 92, 235.043923)
 #u238 = Isotope('U238', 92, 238.050783)
 #th232 = Isotope('Th232', 90, 232.03805)
