@@ -35,21 +35,24 @@ class McnpinpHandler(object):
         with open(inpname, 'r', encoding="utf-8") as fid:
             content = fid.readlines()
         line = ''
+        targetline = None
         numSeparator = 0
         for eachline in content:
             # empty line case
             if eachline.strip() == '':
                 lists = line.strip().split()
-                if len(lists) !=0 and lists[0] == designator and numSeparator == numsp:
-                    return line
+                if lists and lists[0] == str(designator) and numSeparator == numsp:
+                    targetline = line
+                    return targetline
                 else:
                     line = eachline
                 numSeparator += 1
             # mcnp card start line case
             elif eachline[0] != ' ' and re.match(eachline.split()[0], 'c', re.I) is None:
                 lists = line.strip().split()
-                if len(lists) !=0 and lists[0] == designator and numSeparator == numsp:
-                    return line
+                if lists and lists[0] == str(designator) and numSeparator == numsp:
+                    targetline = line
+                    return targetline
                 else:
                     line = eachline
             # annotation line case
@@ -58,7 +61,13 @@ class McnpinpHandler(object):
             # mcnp card continuation line case
             else:
                 line = line + eachline
-        return line
+        # end of the file case
+        lists = line.strip().split()
+        if lists and lists[0] == str(designator) and numSeparator == numsp:
+            targetline = line
+            return targetline    
+        
+        return targetline
 
 
     def modifyinp(self, inpname, designator, modifiedline, section='cell'):
