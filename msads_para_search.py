@@ -8,34 +8,19 @@ import os
 import re
 
 
-# def readinp(inp, cardlist=None):
-#     results = {}
-#     if cardlist:
-#         for card in cardlist:
-#             results[card] = []
-#     else:
-#         return None
+def inital(inp, diff, surflist=None):
+    mh = McnpinpHandler()
 
-#     mcnpline = ''
-#     with open(inp, 'r') as fid:
-#         for line in fid:
-#             if line[0].isspace():
-#                 mcnpline += line
-#             elif re.match(line.split()[0], 'c', re.I) is not None:
-#                 pass
-#             else:
-#                 lists = mcnpline.strip().split()
-#                 if bool(lists):
-#                     for card in cardlist:
-#                         if re.match(card, lists[0], re.I) is not None:
-#                             results[card] = [float(x) for x in lists[1:]]
-#                 mcnpline = line
-#         lists = mcnpline.strip().split()
-#         if bool(lists):
-#             for card in cardlist:
-#                 if re.match(card, lists[0], re.I) is not None:
-#                     results[card] = [float(x) for x in lists[1:]]
-#     return results
+    for surf in surflist:
+        line1 = mh.readContent(inp, surf, section='surface')
+        oldsurf = float(line1.strip().split()[2])
+        if oldsurf > 0:
+            newsurf = oldsurf - diff
+        else:
+            newsurf = oldsurf + diff
+
+        newline = line1.replace(line1.strip().split()[2], "{:.1f}".format(newsurf))
+        mh.modifyinp(inp, surf, newline, section='surface')
 
 
 def deleteNonMcnpCard(inp, cardlist=None):
@@ -110,19 +95,7 @@ def changeMode(inp, mode):
                     f.write(line)
 
 
-cardlist=['naclsets', 'puclsets', 'coresizesets', 'reflectorsets']
 
-mh = McnpinpHandler()
-paralists = []
-for card in cardlist:
-    line = mh.readContent('co25', card, section='data')
-    if line:
-        lists = line.strip().split()
-        paralists.append([int(x) for x in lists[1:]])
-    para = {card: para for card, para in zip(cardlist, paralists)}
-
-print(deleteNonMcnpCard('co25', cardlist))
-print(para)
 u235 = Isotope('U235', 92, 235.043923)
 u238 = Isotope('U238', 92, 238.050783)
 th232 = Isotope('Th232', 90, 232.03805)
@@ -174,6 +147,19 @@ print('inputfile=%s' %args.inp,'ppn=%s' %args.ppn)
 inp = args.inp
 node = args.node
 ppn = args.ppn
+cardlist=['naclsets', 'puclsets', 'coresizesets', 'reflectorsets']
+
+mh = McnpinpHandler()
+paralists = []
+for card in cardlist:
+    line = mh.readContent(inp, card, section='data')
+    if line:
+        lists = line.strip().split()
+        paralists.append([int(x) for x in lists[1:]])
+    para = {card: para for card, para in zip(cardlist, paralists)}
+
+deleteNonMcnpCard(inp, cardlist)
+print(para)
 
 if 'naclsets' in para.keys():    
     startmolnacl = para['naclsets'][0]
@@ -235,7 +221,16 @@ with open(resultfile, 'w') as fid, open(seachoutfile, 'w') as fid2:
        .format('Core size', 'Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff',\
                                'CR of kcode', 'Escape of kcode', 'CR of fixed',\
                                'Escape of fixed'))
+
 for mm in range(0, endCoreSize, coreSizeStep):
+    #  set thickness of reflector to 0
+    line1 = mh.readContent(inp, '2', section='surface')
+    line2 = mh.readContent(inp, '15', section='surface')
+    surf1 = float(line1.strip().split()[2])
+    surf2 = float(line2.strip().split()[2])
+    diff = abs(abs(surf1) - abs(surf2))      
+    surflist = ['15', '16', '17', '18', '19', '20']
+    inital(inp, diff, surflist)
     if mm == 0:
         changeMcnpLine(inp, 0, '2', 'surface')
         changeMcnpLine(inp, 0, '13', 'surface')
@@ -342,9 +337,7 @@ for mm in range(0, endCoreSize, coreSizeStep):
                 results['thickness'] = kk
                 results['coresize'] = mm
 
-                # results[(kk, matdict[nacl], matdict[pucl3], matdict[thcl4])] = result['keff']
-                # print("{:<10} {:<10} {:<10} {:<10} {:<10}\n".format(kk, matdict[nacl], matdict[pucl3], matdict[thcl4], result['keff']))
-
+                
                 with open(resultfile, 'a') as fid, open(seachoutfile, 'a') as fid2:
                     fid2.write("{coresize:^10} {thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
                     if float(results['keff']) > 0.97 and float(results['keff'])<0.99:
