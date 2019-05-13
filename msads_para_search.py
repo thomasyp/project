@@ -129,7 +129,7 @@ mgcl2dict = {mg:1, cl:2}
 pucl3dict = {pu:1, cl:3}
 ucl3dic = {u:1, cl:3}
 # lifdict = {li:1, f:1}
-nacl = Compound('NaCl', nacldict, 2.1359, 0.543e-3)
+nacl = Compound('NaCl', nacldict, 2.1393, 0.543e-3)
 thcl4 = Compound('ThCl4', thcl4dict, 4.823, 0.0014)
 
 pucl3 = Compound('PuCl3', pucl3dict, 4.809, 0)
