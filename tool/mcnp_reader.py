@@ -557,7 +557,7 @@ class McnpTallyReader(object):
 if __name__ == '__main__':
     mtr = McnpTallyReader()
     # test = mtr.readNeutronActivity('cor1o_0_5_5_90', cell=4, nuclides=['94239','90232','17042'])
-    cr = mtr.getCR('cor2o-1-1')
+    cr = mtr.getCR('D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\扩大堆芯搜索\\微调\\温度系数\\r140.log')
     # for key, value in test.items():
     #     print(key,value)
     # import yt
