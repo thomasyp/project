@@ -10,9 +10,13 @@ import os
 import re
 
 class McnpinpHandler(object):
+    CELL_SECTION = 0
+    SURFACE_SECTION = 1
+    DATA_SECTION = 2
+
     def __init__(self):
         pass
-
+    
     def readContent(self, inpname, designator, section='cell'):
         """
             Function: read content from  mcnp input card.
@@ -69,6 +73,101 @@ class McnpinpHandler(object):
         
         return targetline
 
+
+    def readCellCards(self, inpname):
+        """
+            Function: read all cell cards from mcnp input.
+            Parameters:
+                inpname: the name of mcnp input card which need to be read.
+                
+            Return:
+                lists: read context.
+        """
+        section = 0
+        cellcards = []
+
+        with open(inpname, 'r') as fid:
+            for eachline in fid:
+                # restrict in cell cards 
+                lines = eachline.strip()
+                if lines:
+                    if section == McnpinpHandler.CELL_SECTION:
+                        if eachline[0].isspace() is False:
+                            if re.match(eachline.split()[0], 'c', re.I) is not None:
+                                pass
+                            else:
+                                lists = eachline.strip().split()                                
+                                cellcards.append(self.readContent(inpname, lists[0]))
+                        
+                else:
+                    section += 1
+                    
+        return cellcards[1:]  # delete title
+
+
+    def readSurfaceCards(self, inpname):
+        """
+            Function: read all surface cards from mcnp input.
+            Parameters:
+                inpname: the name of mcnp input card which need to be read.
+                
+            Return:
+                lists: read context.
+        """
+        section = 0
+        surfacecards = []
+
+        with open(inpname, 'r') as fid:
+            for eachline in fid:
+                # restrict in surface cards 
+                
+                lines = eachline.strip()
+                if lines:
+                    if section == McnpinpHandler.SURFACE_SECTION:
+                        if eachline[0].isspace() is False:
+                            if re.match(eachline.split()[0], 'c', re.I) is not None:
+                                pass
+                            else:
+                                lists = eachline.strip().split()                                
+                                surfacecards.append(self.readContent(inpname, lists[0], section='surface'))
+                        
+                else:
+                    section += 1
+                    
+        return surfacecards 
+
+
+    def readDataCards(self, inpname):
+        """
+            Function: read all surface cards from mcnp input.
+            Parameters:
+                inpname: the name of mcnp input card which need to be read.
+                
+            Return:
+                lists: read context.
+        """
+        section = 0
+        datacards = []
+
+        with open(inpname, 'r') as fid:
+            for eachline in fid:
+                # restrict in surface cards 
+                
+                lines = eachline.strip()
+                if lines:
+                    if section == McnpinpHandler.DATA_SECTION:
+                        if eachline[0].isspace() is False:
+                            if re.match(eachline.split()[0], 'c', re.I) is not None:
+                                pass
+                            else:
+                                lists = eachline.strip().split()                                
+                                datacards.append(self.readContent(inpname, lists[0], section='data'))
+                        
+                else:
+                    section += 1
+                    
+        return datacards  
+       
 
     def modifyinp(self, inpname, designator, modifiedline, section='cell'):
         """
@@ -185,13 +284,17 @@ class McnpinpHandler(object):
 
 if __name__ == "__main__":
     mh = McnpinpHandler()
-    line = "502       18 -2.1 (465:452:-454) -466 -452 454 2002 2004 2030 2032 2036 2038 2040 2042 2044 2046 \
-          2048 2050 2052 2054 2056 imp:n=4 502 18 -2.1\
-      (465:452:-454) -466 -452 454 2002 2004 2030 2032 2036 2038 2040 2042\
-      2044 2046 2048 2050 2052 2054 2056 imp:n=4 502 18 -2.1"
-    mh.modifyinp('cor4.txt', '99', line)
-    line = mh.readContent('cor4.txt', '4')
-    print(line)
+    # line = "502       18 -2.1 (465:452:-454) -466 -452 454 2002 2004 2030 2032 2036 2038 2040 2042 2044 2046 \
+    #       2048 2050 2052 2054 2056 imp:n=4 502 18 -2.1\
+    #   (465:452:-454) -466 -452 454 2002 2004 2030 2032 2036 2038 2040 2042\
+    #   2044 2046 2048 2050 2052 2054 2056 imp:n=4 502 18 -2.1"
+    # mh.modifyinp('cor4.txt', '99', line)
+    # line = mh.readContent('cor4.txt', '4')
+    # print(line)
+    # print(mh.readCellCards('na402'))
+    # print(mh.readCellCards('na402'))
+    # print(mh.readSurfaceCards('na402'))
+    print(mh.readDataCards('na402'))
 
 
 
