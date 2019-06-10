@@ -3,19 +3,18 @@ Created on 2015/9/29
 
 @author: thomas
 '''
-import mcnp_lib
-import os
-import sys
-import shutil
-import operator
-from tool.mcnp_reader import McnpTallyReader
+
 from tool.handle_mcnpinp import McnpinpHandler
+from tool.mcnp_reader import McnpTallyReader
+import mcnp_lib
+import operator
+import os
+import shutil
+import sys
+
 
 class InpChecker(object):
     def __init__(self):
-        self.neednextline = False
-        self.tmplist = {}
-    
 
     def hasMtnumIninp(self, inpfile, matnum):
         mh = McnpinpHandler()
@@ -29,21 +28,19 @@ class InpChecker(object):
             if mat not in matincellcard:
                 mh.errorMessage(' material number {:} do not exists!\n'.format(mat))
                 return False
-        
+
         return True
 
-       
     def findTMP(self, inp, designator):
         mh = McnpinpHandler()
         mcnpcontent = mh.readContent(inp, designator)
-       
+
         if '$' in mcnpcontent:
             mcnpcontent = mcnpcontent[:mcnpcontent.find('$')]
-        if mcnpcontent.find('tmp')>0 or mcnpcontent.find('TMP')>0:
+        if mcnpcontent.find('tmp') > 0 or mcnpcontent.find('TMP') > 0:
             return True
         else:
             return False
-
 
     def readTMP(self, inp, designator):
         mh = McnpinpHandler()
@@ -55,16 +52,14 @@ class InpChecker(object):
         tmp = None
         for ii, eachstr in enumerate(inplist):
             if 'tmp' in eachstr or 'TMP' in eachstr:
-               # print self.tmplist
                 tmp = float(inplist[ii][4:])
-       
+
         return tmp
 
-    
     def isTMPIdentical(self, filename, workpath=None):
         inpfile = filename
-        tmpdic = {}    
-        if workpath:            
+        tmpdic = {}
+        if workpath:
             inpfile = os.path.join(workpath, filename)
         mh = McnpinpHandler()
         cellcards = mh.readCellCards(inpfile)
@@ -75,7 +70,6 @@ class InpChecker(object):
                 tmpdic[mat] = []
             for ii, eachstr in enumerate(lists):
                 if 'tmp' in eachstr or 'TMP' in eachstr:
-               # print self.tmplist
                     tmp = lists[ii][4:]
                     tmpdic[mat].append(tmp)
 
@@ -83,15 +77,13 @@ class InpChecker(object):
             if len(set(tmps)) > 1:
                 mh.errorMessage('The TMP card of material {:} is inconsistent!\n'.format(key))
                 return False
-        
+
         return True
 
-
-
     def isTemEqMtnum(self, filename, workpath=None):
-        
-        inpfile = filename    
-        if workpath:            
+
+        inpfile = filename
+        if workpath:
             inpfile = os.path.join(workpath, filename)
         mh = McnpinpHandler()
         cellcards = mh.readCellCards(inpfile)
@@ -105,8 +97,6 @@ class InpChecker(object):
                 tmpnum += 1
             if cellcard.strip().split()[1] != '0':
                 matnum += 1
-
-               
         if tmpnum == matnum:
             print ('matnum is ', matnum, ' tmpnum is ', tmpnum)
             return True
@@ -114,24 +104,30 @@ class InpChecker(object):
             print ('matnum is ', matnum, ' tmpnum is ', tmpnum)
             print ('The number of tmp and the number of  material are not  identical !')
             return False
-       
-                
+
     def checkInput(self, filename, matnum, workpath=None):
-        
+
         inpfile = filename
-        if workpath:            
+        if workpath:
             inpfile = os.path.join(workpath, filename)
 
         if self.isTemEqMtnum(inpfile, workpath) is False:
             return False
-        
+
         if self.hasMtnumIninp(inpfile, matnum) is False:
             return False
-        
+
         if self.isTMPIdentical(inpfile) is False:
-            return False 
+            return False
 
         return True
+
+
+class InpModifier(object):
+    def __init__(self):
+        pass
+
+    def modify(self, inp, matnums, mdinp):
 
 
 
@@ -150,21 +146,18 @@ class mkCardofCoeffient(object):
         for tt in self.matnum:
             self.temp[tt] = 0
         self.tag = ' '
-        
-    
+
     def chWorkdir(self):
-        if os.path.exists(os.path.join(self.workpath,self.typeofcoef)):
-            os.chdir(os.path.join(self.workpath,self.typeofcoef))
+        if os.path.exists(os.path.join(self.workpath, self.typeofcoef)):
+            os.chdir(os.path.join(self.workpath, self.typeofcoef))
         else:
             print ('no ',os.path.join(self.workpath,self.typeofcoef),' can not change directory!')
-
 
     def findTMP(self, eachline):
         if eachline.find('tmp')>0 or eachline.find('TMP')>0:
             return True
         else:
             return False
-
 
     def tmphasMtnumInLine(self, testlist):
         mm = 0
@@ -175,9 +168,6 @@ class mkCardofCoeffient(object):
             else:
                 mm = mm + 1
         return False,0
-    
-
-    def denshasMtnumInLine(self, testlist):
         mm = 0
         while(mm<len(self.densmatnum)):
             # if not cmp(testlist[1],self.densmatnum[mm]):
@@ -187,7 +177,6 @@ class mkCardofCoeffient(object):
             else:
                 mm = mm + 1
         return False,0
-    
 
     def mthasMtnumInLine(self, matnum, testlist):
         mm = 0
@@ -200,12 +189,10 @@ class mkCardofCoeffient(object):
                 mm = mm + 1
         return False,0
 
-
     def replacemt(self, temp):
-        
+
         return mcnp_lib.chooselib(temp)
-        
-        
+
     def changeTMP(self, eachline):
         inplist = eachline.strip().split()
         if eachline[0].isdigit():
@@ -220,7 +207,7 @@ class mkCardofCoeffient(object):
                             eachline = eachline.replace(inplist[ii],new_tmp,1)
                     self.neednextline = False
                     return eachline
-                
+
                 else:
                     self.neednextline = True
                     return eachline
@@ -237,14 +224,14 @@ class mkCardofCoeffient(object):
                             eachline = eachline.replace(inplist[ii],new_tmp,1)
                     self.neednextline = False
                     return eachline
-                
+
                 else:
                     self.neednextline = True
                     return eachline
             else:
                 self.neednextline = False
                 return eachline
-                
+
         else:
             self.neednextline = False
             return eachline
@@ -290,13 +277,13 @@ class mkCardofCoeffient(object):
                         ind = inplist[ii].find('.')
                         ss = inplist[ii][0:ind+1] + self.replacemt(self.temp[self.tag])[1]
                         eachline = eachline.replace(inplist[0],ss)
-                return eachline 
+                return eachline
             else:
                 return eachline
         else:
             self.findmt = False
             return eachline
-                
+
         return eachline
 
 
@@ -312,9 +299,9 @@ class mkCardofCoeffient(object):
                 return eachline
         else:
             return eachline
-        
+
     def changeCardforRun(self, filename):
-        
+
         with open('inp0','r') as fobjr, open(filename,'w') as fobjw:
             n_line = 0
             n_emptyline = 0
@@ -337,10 +324,9 @@ class mkCardofCoeffient(object):
                         fobjw.write(self.changeMT(eachline))
                     else:
                         fobjw.write(eachline)
-                            
-        print (self.temp )  
 
-    
+        print (self.temp )
+
     def cpFile(self):
         if os.path.exists(os.path.join(self.workpath,self.filename)):
             targetdir = os.path.join(self.workpath,self.typeofcoef)
@@ -350,7 +336,7 @@ class mkCardofCoeffient(object):
                 pass
             else:
                 os.mkdir(targetdir)
-                
+
             if os.path.exists(targetfile):
                 os.remove(targetfile)
                 shutil.copy(sourefile, targetfile)
@@ -366,5 +352,5 @@ if __name__ == "__main__":
     ick = InpChecker()
     mat = ['1', '3']
     print(ick.checkInput('na402', mat))
-        
-        
+
+
