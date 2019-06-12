@@ -159,12 +159,15 @@ cardlist=['naclsets', 'puclsets', 'coresizesets', 'reflectorsets']
 
 mh = McnpinpHandler()
 paralists = []
+newcardlist = []
 for card in cardlist:
     line = mh.readContent(inp, card, section='data')
     if line:
         lists = line.strip().split()
+        newcardlist.append(card)
         paralists.append([int(x) if type(eval(x))==int else float(x) for x in lists[1:]])
-    para = {card: para for card, para in zip(cardlist, paralists)}
+
+para = {card: para for card, para in zip(newcardlist, paralists)}
 
 deleteNonMcnpCard(inp, cardlist)
 print(para)
