@@ -431,25 +431,47 @@ class McnpTallyReader(object):
             需要读取俘获率的 cell 类型为lists
             需要读取俘获率的 nuclides 类型为lists
         Return:
-            case1:返回俘获率，泄漏率以及裂变率，返回类型为字典
+            case1:返回俘获率，泄漏率以及裂变率，'photonuclear', '(n,xn)', 'loss to (n,xn)', 'prompt fission', 'delayed fission'。返回类型为字典
             case2,3,4:仅返回俘获率，返回类型为字典
         """
         results = {}
+        tag  = False
+        physical_quantity_to_be_read = ['escape', 'loss to fission', 'capture', \
+            'photonuclear', '(n,xn)', 'loss to (n,xn)', 'prompt fission', 'delayed fission', 'nucl. interaction']
         if cell is None and nuclides is None:
             with open(outfile, 'r') as fid:
                 for eachline in fid:
                     lists = eachline.strip().split()
-                    if 'source' in eachline and 'escape' in eachline:
-                        if lists[1].isnumeric():
-                            results['escape'] = float(lists[6])
-                    if 'prompt fission' in eachline and 'loss to fission' in eachline:
-                        results['lossfission'] = float(lists[9])
-                    if 'photonuclear' in eachline and 'capture' in eachline:
-                        results['capture'] = float(lists[6])
+                    if 'neutron creation' in eachline:
+                        tag = True
+                    if 'photon creation' in eachline:
+                        tag = False
+                    if tag:
+                        for physiclquantity in physical_quantity_to_be_read:                            
+                            if 'total' in eachline:
+                                tag = False
+                            elif physiclquantity in eachline:
+                                if physiclquantity == 'loss to fission':
+                                    results['lossfission'] = float(lists[lists.index('loss')+4])
+                                elif physiclquantity == 'loss to (n,xn)':
+                                    results['loss(n,xn)'] = float(lists[lists.index('loss')+4])
+                                elif physiclquantity == 'prompt fission':
+                                    results['pfission'] = float(lists[lists.index('prompt')+3])
+                                elif physiclquantity == 'delayed fission':
+                                    results['dfission'] = float(lists[lists.index('delayed')+3])
+                                elif physiclquantity == 'nucl. interaction':
+                                    if lists[0] == 'nucl.':
+                                        results['nuclinteraction'] = float(lists[lists.index('interaction')+2])
+                                    else:
+                                        results['lossnuclinteraction'] = float(lists[lists.index('interaction')+2])
+                                else:
+                                    results[physiclquantity] = float(lists[lists.index(physiclquantity)+2])
+                            else:
+                                pass
+
             return results
         # cell is not None and nuclides is None:
         elif nuclides is None:
-            tag  = False
             content = []
             capturelists = []
             with open(outfile, 'r') as fid:
@@ -480,7 +502,7 @@ class McnpTallyReader(object):
 
         # cell is None and nuclides is not None:
         elif cell is None:
-            tag  = False
+    
             content = []
             for nuclide in nuclides:
                 results[str(nuclide)] = 0
@@ -506,7 +528,7 @@ class McnpTallyReader(object):
 
         # cell is not None and nuclides is not None:
         else:
-            tag  = False
+            
             content = []
             capturelists = []
             for nuclide in nuclides:
@@ -552,14 +574,36 @@ class McnpTallyReader(object):
         print(CR)
         return CR
 
+    def getNeutronYield(self, outfile):
+        '''
+        Fuction:
+            读取mcnp输出文件中的neutron creation表，计算出中子产额。
+            注：该函数主要用于质子打靶的中子产额计算，基于mcnpx输出文件。
+           
+        Input parameter:
+            需要读取的 mcnp输出文件名：outfile
+            
+        Return:
+            中子产额.返回类型float
+            
+        '''
+        totRateDic = self.readNeutronActivity(outfile)
+        neutronyield = totRateDic['nuclinteraction'] - totRateDic['lossnuclinteraction'] + \
+            totRateDic['(n,xn)'] - totRateDic['loss(n,xn)']
+        return neutronyield
+
 
 
 if __name__ == '__main__':
     mtr = McnpTallyReader()
-    # test = mtr.readNeutronActivity('cor1o_0_5_5_90', cell=4, nuclides=['94239','90232','17042'])
-    cr = mtr.getCR('D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\扩大堆芯搜索\\微调\\温度系数\\r140.log')
-    # for key, value in test.items():
-    #     print(key,value)
+    # path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\扩大堆芯搜索\\微调\\120r60ko_40.00_6.70_53.30'
+    path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\中子产额\\outr'
+    test = mtr.readNeutronActivity(path)
+    cr = mtr.getCR(path)
+    ny = mtr.getNeutronYield(path)
+    print(ny)
+    for key, value in test.items():
+        print(key,value)
     # import yt
     # groupname = []
     # mtr = McnpTallyReader()
