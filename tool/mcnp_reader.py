@@ -610,7 +610,7 @@ class McnpTallyReader(object):
             需要读取的 mcnp输出文件名：outfile
             粒子类型：希望读取的粒子类型，支持：'n','h','pi_+'
         Return:
-            .返回类型float
+            返回类型dict
             
         '''
         
