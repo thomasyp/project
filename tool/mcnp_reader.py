@@ -719,17 +719,14 @@ class McnpTallyReader(object):
         return results
 
 
-                    
-
 if __name__ == '__main__':
     mtr = McnpTallyReader()
     # path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\扩大堆芯搜索\\微调\\120r60ko_40.00_6.70_53.30'
-    path = 'D:\\work\\pythonwork\\testplace\\putho'
+    path = 'E:\\中子产额\\1000MeV\\puthout'
     # path = 'D:\\work\\mcnpwork\\lf1\\初步设计\\核测\\base.log'
     data = mtr.getNeutronWeightBalance(path, 'n')
     print(data)
-    line = 'capture test tssts -4.1151E-09  0.0000E+00 -5.5191E-06 -5.0744E-07  0.0000E+00 -1.0070E-02  0.0000E+00 -4.6824E-09  0.0000E+00                 '
-    # num = mtr.findPosInLine(line, '-?\d\.\d{4,5}E[+-]\d{2}')
+    
     # print(num)
     # lists = line.strip().split()
     # print(lists[num:-1])
