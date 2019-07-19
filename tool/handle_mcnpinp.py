@@ -275,6 +275,8 @@ class McnpinpHandler(object):
             os.remove(inp+'r')
         if os.path.isfile(inp+'o'):
             os.remove(inp+'o')
+        if os.path.isfile(inp+'d'):
+            os.remove(inp+'d')
         if os.path.isfile('meshtal'):
             os.remove('meshtal')
 
