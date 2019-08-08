@@ -165,14 +165,6 @@ class McnpTallyReader(object):
             return None
         return results
 
-    def findPosInLine(self, line, reFormat):
-        lists = line.strip().split()
-        for num, string in enumerate(lists):
-            if re.match(reFormat, string) is not None:
-                return num
-        return None
-            
-
     def readFmeshDataIntoDic(self, meshtalFile, tallyNumber, groupNum, isWritetoHDF5, *dataType, **kwargs):
         """
         Fuction name:
@@ -439,47 +431,25 @@ class McnpTallyReader(object):
             需要读取俘获率的 cell 类型为lists
             需要读取俘获率的 nuclides 类型为lists
         Return:
-            case1:返回俘获率，泄漏率以及裂变率，'photonuclear', '(n,xn)', 'loss to (n,xn)', 'prompt fission', 'delayed fission'。返回类型为字典
+            case1:返回俘获率，泄漏率以及裂变率，返回类型为字典
             case2,3,4:仅返回俘获率，返回类型为字典
         """
         results = {}
-        tag  = False
-        physical_quantity_to_be_read = ['escape', 'loss to fission', 'capture', \
-            'photonuclear', '(n,xn)', 'loss to (n,xn)', 'prompt fission', 'delayed fission', 'nucl. interaction']
         if cell is None and nuclides is None:
             with open(outfile, 'r') as fid:
                 for eachline in fid:
                     lists = eachline.strip().split()
-                    if 'neutron creation' in eachline:
-                        tag = True
-                    if 'photon creation' in eachline:
-                        tag = False
-                    if tag:
-                        for physiclquantity in physical_quantity_to_be_read:                            
-                            if 'total' in eachline:
-                                tag = False
-                            elif physiclquantity in eachline:
-                                if physiclquantity == 'loss to fission':
-                                    results['lossfission'] = float(lists[lists.index('loss')+4])
-                                elif physiclquantity == 'loss to (n,xn)':
-                                    results['loss(n,xn)'] = float(lists[lists.index('loss')+4])
-                                elif physiclquantity == 'prompt fission':
-                                    results['pfission'] = float(lists[lists.index('prompt')+3])
-                                elif physiclquantity == 'delayed fission':
-                                    results['dfission'] = float(lists[lists.index('delayed')+3])
-                                elif physiclquantity == 'nucl. interaction':
-                                    if lists[0] == 'nucl.':
-                                        results['nuclinteraction'] = float(lists[lists.index('interaction')+2])
-                                    else:
-                                        results['lossnuclinteraction'] = float(lists[lists.index('interaction')+2])
-                                else:
-                                    results[physiclquantity] = float(lists[lists.index(physiclquantity)+2])
-                            else:
-                                pass
-
+                    if 'source' in eachline and 'escape' in eachline:
+                        if lists[1].isnumeric():
+                            results['escape'] = float(lists[6])
+                    if 'prompt fission' in eachline and 'loss to fission' in eachline:
+                        results['lossfission'] = float(lists[9])
+                    if 'photonuclear' in eachline and 'capture' in eachline:
+                        results['capture'] = float(lists[6])
             return results
         # cell is not None and nuclides is None:
         elif nuclides is None:
+            tag  = False
             content = []
             capturelists = []
             with open(outfile, 'r') as fid:
@@ -510,7 +480,7 @@ class McnpTallyReader(object):
 
         # cell is None and nuclides is not None:
         elif cell is None:
-    
+            tag  = False
             content = []
             for nuclide in nuclides:
                 results[str(nuclide)] = 0
@@ -536,7 +506,7 @@ class McnpTallyReader(object):
 
         # cell is not None and nuclides is not None:
         else:
-            
+            tag  = False
             content = []
             capturelists = []
             for nuclide in nuclides:
@@ -573,8 +543,8 @@ class McnpTallyReader(object):
             return results
 
     def getCR(self, outfile):
-        totratedic = self.readNeutronActivity(outfile)
-        totfission = totratedic['lossfission']
+        totRateDic = self.readNeutronActivity(outfile)
+        totfission = totRateDic['lossfission']
         captureDic = self.readNeutronActivity(outfile, nuclides=['90232', '92234', '94240', '91233', '92238', '92233', '92235', '94239', '94241'])
         # CR=Rc(Th232 + U234 + U238 + Pu240 -Pa233) / Ra(U233 + U235 + Pu239 + Pu241)
         CR = (captureDic['90232'] + captureDic['92234'] + captureDic['94240'] + captureDic['92238'] - captureDic['91233'])\
@@ -582,162 +552,14 @@ class McnpTallyReader(object):
         print(CR)
         return CR
 
-    def getNeutronYield(self, outfile):
-        '''
-        Fuction:
-            读取mcnp输出文件中的neutron creation表，计算出中子产额。
-            注：该函数主要用于质子打靶的中子产额计算，基于mcnpx输出文件。
-           
-        Input parameter:
-            需要读取的 mcnp输出文件名：outfile
-            
-        Return:
-            中子产额.返回类型float
-            
-        '''
-        totratedic = self.readNeutronActivity(outfile)
-        neutronyield = totratedic['nuclinteraction'] - totratedic['lossnuclinteraction'] + \
-            totratedic['(n,xn)'] - totratedic['loss(n,xn)']
-        return neutronyield
-
-    def getNeutronWeightBalance(self, outfile, particleType='n'):
-        '''
-        Fuction:
-            读取mcnp输出文件中的print table 130: weight balance in each cell
-            注：该函数主要用于读取不同栅元内粒子的行为，包括发生的反应类型，泄露，进入等信息。
-            
-        Input parameter:
-            需要读取的 mcnp输出文件名：outfile
-            粒子类型：希望读取的粒子类型，支持：'n','h','pi_+'
-        Return:
-            返回类型dict
-            
-        '''
-        
-        supportparticletype = {'n':'neutron', 'h':'proton', 'pi_+':'pi_+'}
-        if particleType not in supportparticletype.keys():
-            self.errorMessage('Particle types are not supported!')
-            return -1
-        results = {'external events':{}, 'variance reduction events':{}, 'physical events':{}}
-        external_events_data = []
-        variance_reduction_events_data = []
-        physical_events_data = []
-
-        external_events_keys = []
-        variance_reduction_events_keys = []
-        physical_events_keys = []
-        cellnum = []
-        tag  = False
-        readtagfor_external_events = False
-        readtagfor_variance_reduction = False
-        readtagfor_physical_events = False
-
-        external_events_dic = {}
-        variance_reduction_events_dic = {}
-        physical_events_dic = {}
-
-        
-        with open(outfile, 'r') as fid:
-            for eachline in fid:
-                lists = eachline.strip().split()
-                if not eachline[0].isspace():
-                    tag = False
-                if 'print table 130' in eachline and supportparticletype[particleType] in eachline:
-                    tag = True
-                    external_events_data = []
-                    variance_reduction_events_data = []
-                    physical_events_data = []
-                    external_events_keys = []
-                    variance_reduction_events_keys = []
-                    physical_events_keys = []
-                    cellnum = []
-
-                if tag:
-                    if 'cell number' in eachline:
-                        # for cell in lists[2:]:
-                        cellnum.append(lists[2:])
-                    if 'external events' in eachline:
-                        readtagfor_external_events = True
-                        external_events_keys = []
-                    if 'variance reduction events' in eachline:
-                        readtagfor_variance_reduction = True
-                        variance_reduction_events_keys = []
-                    if 'physical events' in eachline:
-                        readtagfor_physical_events = True
-                        physical_events_keys = []
-                    if lists and lists[0] == 'total':
-                        readtagfor_external_events = False
-                        readtagfor_variance_reduction = False
-                        readtagfor_physical_events = False
-                    if readtagfor_external_events:
-                        indx =  self.findPosInLine(eachline, '-?\d\.\d{4,5}E[+-]\d{2}')
-                        if indx is not None:
-                            external_events_keys.append(' '.join(lists[:indx]))
-                            external_events_data.extend([float(data) for data in lists[indx:]])
-                    if readtagfor_variance_reduction:
-                        indx =  self.findPosInLine(eachline, '-?\d\.\d{4,5}E[+-]\d{2}')
-                        if indx is not None:
-                            variance_reduction_events_keys.append(' '.join(lists[:indx]))
-                            variance_reduction_events_data.extend([float(data) for data in lists[indx:]])
-                    if readtagfor_physical_events:
-                        indx =  self.findPosInLine(eachline, '-?\d\.\d{4,5}E[+-]\d{2}')
-                        if indx is not None:
-                            physical_events_keys.append(' '.join(lists[:indx]))
-                            physical_events_data.extend([float(data) for data in lists[indx:]])
-       
-        
-        for celllists in cellnum:
-            for cell in celllists:
-                external_events_dic[cell] = {}
-                variance_reduction_events_dic[cell] = {}
-                physical_events_dic[cell] = {}
-        
-        
-        ind = 0
-        for celllists in cellnum:
-            for key in external_events_keys:
-                for cell in celllists:
-                    external_events_dic[cell][key] = external_events_data[ind]
-                    ind += 1
-        ind = 0
-        for celllists in cellnum:
-            for key in variance_reduction_events_keys:
-                for cell in celllists:
-                    variance_reduction_events_dic[cell][key] = variance_reduction_events_data[ind]
-                    ind += 1
-        ind = 0
-        for celllists in cellnum:
-            for key in physical_events_keys:
-                for cell in celllists:
-                    physical_events_dic[cell][key] = physical_events_data[ind]
-                    ind += 1
-        
-        results['external events'] = external_events_dic
-        results['variance reduction events'] = variance_reduction_events_dic
-        results['physical events'] = physical_events_dic
-        
-        return results
 
 
 if __name__ == '__main__':
     mtr = McnpTallyReader()
-    # path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\扩大堆芯搜索\\微调\\120r60ko_40.00_6.70_53.30'
-    path = 'E:\\中子产额\\1000MeV\\puthout'
-    # path = 'D:\\work\\mcnpwork\\lf1\\初步设计\\核测\\base.log'
-    data = mtr.getNeutronWeightBalance(path, 'n')
-    print(data)
-    
-    # print(num)
-    # lists = line.strip().split()
-    # print(lists[num:-1])
-    # print(' '.join(lists[:num]))
-    # test = mtr.readNeutronActivity(path)
-    # cr = mtr.getCR(path)
-    # ny = mtr.getNeutronYield(path)
-    # print(ny)
+    # test = mtr.readNeutronActivity('cor1o_0_5_5_90', cell=4, nuclides=['94239','90232','17042'])
+    cr = mtr.getCR('D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\扩大堆芯搜索\\微调\\温度系数\\r140.log')
     # for key, value in test.items():
     #     print(key,value)
-
     # import yt
     # groupname = []
     # mtr = McnpTallyReader()

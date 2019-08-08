@@ -136,27 +136,35 @@ class Material(BaseClass):
 
 if __name__ == '__main__':
     u235 = Isotope('U235', 92, 235.043923)
+    u233 = Isotope('U233', 92, 233.043923)
     u238 = Isotope('U238', 92, 238.050783)
     th232 = Isotope('Th232', 90, 232.03805)
-    pu239 = Isotope('Pu239', 94, 239.0) 
+    pu238 = Isotope('Pu238', 94, 238.0)
+    pu239 = Isotope('Pu239', 94, 239.0)
+    pu240 = Isotope('Pu240', 94, 240.0)
+    pu241 = Isotope('Pu241', 94, 241.0)
+    pu242 = Isotope('Pu242', 94, 242.0)
     f19 = Isotope('F19', 9, 18.998403)
     be9 = Isotope('Be9', 4, 9.012182)
-    li6 = Isotope('li6', 3, 9.012182)
-    li7 = Isotope('li7', 3, 9.012182)
+    li6 = Isotope('li6', 3, 6.015122)
+    li7 = Isotope('li7', 3, 7.016004)
     cl37 = Isotope('cl37', 17, 36.965903)
     mg24= Isotope('mg24', 12, 23.985042)
     mg25= Isotope('mg25', 12, 24.985837)
     mg26= Isotope('mg26', 12, 25.982593)
     na23 = Isotope('na23', 11, 22.989770)
     udict = {u235:0.1995, u238:0.8005}
+    # udict = {u233:1}
+    lidict = {li6:0.0005, li7:0.9995}
     fdict = {f19:1}
     cldict = {cl37:1}
-    pudict = {pu239:1}
+    pudict = {pu238:0.019497, pu239:0.5875682, pu240:0.2371, pu241:0.10133776, pu242:0.05449704}
     mgdict = {mg24:0.7899, mg25:0.10, mg26:0.1101}
     nadict = {na23:1}
     cl = Nuclide('Cl', cldict)
     u = Nuclide('U', udict)
     f = Nuclide("F", fdict)
+    li = Nuclide("Li", lidict)
     th = Nuclide("Th", {th232:1})
     be = Nuclide("Be", {be9:1})
     pu = Nuclide("Pu", pudict)
@@ -164,18 +172,31 @@ if __name__ == '__main__':
     na = Nuclide("Na", nadict)
     nacldict = {na:1, cl:1}
     thcl4dict = {th:1, cl:4}
+    thf4dict = {th:1, f:4}
     mgcl2dict = {mg:1, cl:2}
     pucl3dict = {pu:1, cl:3}
-    ucl3dic = {u:1, cl:3}
+    ucl3dict = {u:1, cl:3}
+    uf4dict = {u:1, f:4}
+    lifdict = {li:1, f:1}
+    bef2dict = {be:1, f:2}
     # lifdict = {li:1, f:1}
-    nacl = Compound('NaCl', nacldict, 2.1359, 0.543e-3)
+    nacl = Compound('NaCl', nacldict, 2.1393, 0.543e-3)
+    
     thcl4 = Compound('ThCl4', thcl4dict, 4.823, 0.0014)
     
-    pucl3 = Compound('PuCl3', pucl3dict, 4.809, 0)
-    ucl3 = Compound('UCl3', pucl3dict, 6.3747, 1.5222e-3)
+    thf4 = Compound('ThF4', thf4dict, 7.108, 7.59e-4)
+    
+    pucl3 = Compound('PuCl3', pucl3dict, 4.809, 0.0014)
+    # pucl3 = Compound('PuCl3', pucl3dict, 4.809, 9.92e-4)
+    ucl3 = Compound('UCl3', uf4dict, 6.3747, 1.5222e-3)
+    uf4 = Compound('UF4', uf4dict, 7.784, 9.92e-4)
+
+    lif = Compound('lif', lifdict, 2.358, 4.902e-4)
     # thf4 = Compound('ThF4', thf4dict, 6.490933)
-    # bef2 = Compound('BeF2', bef2dict, 1.9602115)
-    matdict = {nacl:35, pucl3:20, thcl4:45}
+    bef2 = Compound('BeF2', bef2dict, 1.972, 1.45e-5)
+    matdict = {nacl:90, pucl3:6, thcl4:4}
+    # matdict = {nacl:55, ucl3:25, thcl4:20}
+    # matdict = {lif:60, bef2:20, thf4:17.6, uf4:2.4}
     # 'label' 'matdict' 'temp'
     mat = Material('mat1', matdict, 900)
     # print(uf4.getActomicMass())

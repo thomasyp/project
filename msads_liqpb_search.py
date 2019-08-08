@@ -6,6 +6,7 @@ from tool.mcnp_reader import McnpTallyReader
 import argparse
 import os
 import re
+import numpy as np
 
 
 def inital(inp, diff, surflist=None):
@@ -61,11 +62,12 @@ def changeMode(inp, mode):
             \nsi1    -10 10\nsp1   0   1\nsi2    0  10\nsp2    -21 1\nSI3   L  \
             0.151 0.248 0.410 0.675 1.11 1.84 3.03 4.99 19.64\nSP3      \
         0.0 5.45e-2 5.0e-2 8.0e-2 0.122 0.165 0.178 0.157 0.1985\nnps 50000\n'
+
         #for test
         # fixedSource = 'sdef  axs=0 0 1 pos=0 0 0 ext=d1 rad=d2  erg=d3 par=1\
         #     \nsi1    -10 10\nsp1   0   1\nsi2    0  10\nsp2    -21 1\nSI3   L  \
         #     0.151 0.248 0.410 0.675 1.11 1.84 3.03 4.99 19.64\nSP3      \
-        # 0.0 5.45e-2 5.0e-2 8.0e-2 0.122 0.165 0.178 0.157 0.1985\nnps 500\n'
+        # 0.0 5.45e-2 5.0e-2 8.0e-2 0.122 0.165 0.178 0.157 0.1985\nnps 50\n'
         with open(inp, 'w', encoding="utf-8") as f:
             for line in content:
                 lists = line.strip().split()
@@ -79,8 +81,8 @@ def changeMode(inp, mode):
         kcodeSource = 'kcode    20000 1.0 30 250\nksrc   50. 0. 0. -50 0 0  -0 \
             0 0  0 0 20\n'
         #for test 
-        # kcodeSource = 'kcode    2000 1.0 5 50\nksrc   50. 0. 0. -50 0 0  -0 \
-            # 0 0  0 0 20\n'
+        # kcodeSource = 'kcode    200 1.0 5 50\nksrc   50. 0. 0. -50 0 0  -0 \
+        #     0 0  0 0 20\n'
         with open(inp, 'w', encoding="utf-8") as f:
             for line in content:
                 lists = line.strip().split()
@@ -99,7 +101,11 @@ def changeMode(inp, mode):
 u235 = Isotope('U235', 92, 235.043923)
 u238 = Isotope('U238', 92, 238.050783)
 th232 = Isotope('Th232', 90, 232.03805)
+pu238 = Isotope('Pu238', 94, 238.0)
 pu239 = Isotope('Pu239', 94, 239.0)
+pu240 = Isotope('Pu240', 94, 240.0)
+pu241 = Isotope('Pu241', 94, 241.0)
+pu242 = Isotope('Pu242', 94, 242.0)
 f19 = Isotope('F19', 9, 18.998403)
 be9 = Isotope('Be9', 4, 9.012182)
 li6 = Isotope('li6', 3, 9.012182)
@@ -112,7 +118,8 @@ na23 = Isotope('na23', 11, 22.989770)
 udict = {u235:0.1995, u238:0.8005}
 fdict = {f19:1}
 cldict = {cl37:1}
-pudict = {pu239:1}
+# Pu from MOX
+pudict = {pu238:0.019497, pu239:0.5875682, pu240:0.2371, pu241:0.10133776, pu242:0.05449704}
 mgdict = {mg24:0.7899, mg25:0.10, mg26:0.1101}
 nadict = {na23:1}
 cl = Nuclide('Cl', cldict)
@@ -147,19 +154,24 @@ print('inputfile=%s' %args.inp,'ppn=%s' %args.ppn)
 inp = args.inp
 node = args.node
 ppn = args.ppn
+# inp = 'co25'
 cardlist=['naclsets', 'puclsets', 'coresizesets', 'reflectorsets']
 
 mh = McnpinpHandler()
 paralists = []
+newcardlist = []
 for card in cardlist:
     line = mh.readContent(inp, card, section='data')
     if line:
         lists = line.strip().split()
-        paralists.append([int(x) for x in lists[1:]])
-    para = {card: para for card, para in zip(cardlist, paralists)}
+        newcardlist.append(card)
+        paralists.append([int(x) if type(eval(x))==int else float(x) for x in lists[1:]])
+
+para = {card: para for card, para in zip(newcardlist, paralists)}
 
 deleteNonMcnpCard(inp, cardlist)
 print(para)
+initalornot = True
 
 if 'naclsets' in para.keys():    
     startmolnacl = para['naclsets'][0]
@@ -194,9 +206,11 @@ else:
 if 'reflectorsets' in para.keys():
     endreflectorThickness = para['reflectorsets'][0]
     thicknessStep = para['reflectorsets'][1]
+    initalornot = True
 else:
     endreflectorThickness = 1
     thicknessStep = 1
+    initalornot = False
 
 
 print('startmolnacl:', startmolnacl)
@@ -222,15 +236,18 @@ with open(resultfile, 'w') as fid, open(seachoutfile, 'w') as fid2:
                                'CR of kcode', 'Escape of kcode', 'CR of fixed',\
                                'Escape of fixed'))
 
+thicknessOfHalloy = 2
 for mm in range(0, endCoreSize, coreSizeStep):
     #  set thickness of reflector to 0
-    line1 = mh.readContent(inp, '2', section='surface')
-    line2 = mh.readContent(inp, '15', section='surface')
-    surf1 = float(line1.strip().split()[2])
-    surf2 = float(line2.strip().split()[2])
-    diff = abs(abs(surf1) - abs(surf2))      
-    surflist = ['15', '16', '17', '18', '19', '20']
-    inital(inp, diff, surflist)
+    if initalornot:
+        line1 = mh.readContent(inp, '18', section='surface')
+        line2 = mh.readContent(inp, '15', section='surface')
+        surf1 = float(line1.strip().split()[2])
+        surf2 = float(line2.strip().split()[2])
+        diff = abs(abs(surf1) - abs(surf2))  
+        surflist = ['18', '19', '20', '21', '22', '23']
+        inital(inp, diff, surflist)
+    
     if mm == 0:
         changeMcnpLine(inp, 0, '2', 'surface')
         changeMcnpLine(inp, 0, '13', 'surface')
@@ -241,6 +258,9 @@ for mm in range(0, endCoreSize, coreSizeStep):
         changeMcnpLine(inp, 0, '18', 'surface')
         changeMcnpLine(inp, 0, '19', 'surface')
         changeMcnpLine(inp, 0, '20', 'surface')
+        changeMcnpLine(inp, 0, '21', 'surface')
+        changeMcnpLine(inp, 0, '22', 'surface')
+        changeMcnpLine(inp, 0, '23', 'surface')
     else:
         changeMcnpLine(inp, coreSizeStep, '2', 'surface')
         changeMcnpLine(inp, coreSizeStep, '13', 'surface')
@@ -251,26 +271,31 @@ for mm in range(0, endCoreSize, coreSizeStep):
         changeMcnpLine(inp, coreSizeStep, '18', 'surface')
         changeMcnpLine(inp, coreSizeStep, '19', 'surface')
         changeMcnpLine(inp, coreSizeStep, '20', 'surface')
+        changeMcnpLine(inp, coreSizeStep, '21', 'surface')
+        changeMcnpLine(inp, coreSizeStep, '22', 'surface')
+        changeMcnpLine(inp, coreSizeStep, '23', 'surface')
     for kk in range(0, endreflectorThickness, thicknessStep):
         if kk == 0:
-            changeMcnpLine(inp, 0, '15', 'surface')
-            changeMcnpLine(inp, 0, '16', 'surface')
-            changeMcnpLine(inp, 0, '17', 'surface')
+            
             changeMcnpLine(inp, 0, '18', 'surface')
             changeMcnpLine(inp, 0, '19', 'surface')
             changeMcnpLine(inp, 0, '20', 'surface')
+            changeMcnpLine(inp, 0, '21', 'surface')
+            changeMcnpLine(inp, 0, '22', 'surface')
+            changeMcnpLine(inp, 0, '23', 'surface')
         else:
-            changeMcnpLine(inp, thicknessStep, '15', 'surface')
-            changeMcnpLine(inp, thicknessStep, '16', 'surface')
-            changeMcnpLine(inp, thicknessStep, '17', 'surface')
+            
             changeMcnpLine(inp, thicknessStep, '18', 'surface')
             changeMcnpLine(inp, thicknessStep, '19', 'surface')
             changeMcnpLine(inp, thicknessStep, '20', 'surface')
+            changeMcnpLine(inp, thicknessStep, '21', 'surface')
+            changeMcnpLine(inp, thicknessStep, '22', 'surface')
+            changeMcnpLine(inp, thicknessStep, '23', 'surface')
         # loop for nacl
-        for ii in range(startmolnacl, endmolnacl, stepmolnacl):
+        for ii in np.arange(startmolnacl, endmolnacl, stepmolnacl):
             matdict[nacl] = ii
             # loop for pucl
-            for jj in range(100-ii, endmolpucl, stepmolpucl):
+            for jj in np.arange(100-ii, endmolpucl, stepmolpucl):
                 if jj > startmolpucl:
                     continue
                 ## set initials
@@ -307,8 +332,8 @@ for mm in range(0, endCoreSize, coreSizeStep):
                             +k_totrate['lossfission']+k_totrate['capture']) # escape of kcode mode
                     if os.path.isfile(inp+'o'):
                         oldfilename = inp+'o'
-                        newfilename = inp+'ko_'+str(mm)+'_'+str(kk)+'_'+str(matdict[nacl])\
-                            +'_'+str(matdict[pucl3])+'_'+str(matdict[thcl4])
+                        newfilename = inp+'ko_'+str(mm)+'_'+str(kk)+'_'+'{:.4f}'.format(matdict[nacl])\
+                            +'_'+'{:.4f}'.format(matdict[pucl3])+'_'+'{:.4f}'.format(matdict[thcl4])
                         mh.deleteFiles(newfilename)
                         os.rename(oldfilename, newfilename)
                     mh.cleanup(inp)
@@ -326,7 +351,7 @@ for mm in range(0, endCoreSize, coreSizeStep):
                         results['fescape'] = f_totrate['escape']/(f_totrate['escape']+f_totrate['lossfission']+f_totrate['capture'])
                     if os.path.isfile(inp+'o'):
                         oldfilename = inp+'o'
-                        newfilename = inp+'fo_'+str(mm)+'_'+str(kk)+'_'+str(matdict[nacl])+'_'+str(matdict[pucl3])+'_'+str(matdict[thcl4])
+                        newfilename = inp+'fo_'+str(mm)+'_'+str(kk)+'_'+'{:.4f}'.format(matdict[nacl])+'_'+'{:.4f}'.format(matdict[pucl3])+'_'+'{:.4f}'.format(matdict[thcl4])
                         mh.deleteFiles(newfilename)
                         os.rename(oldfilename, newfilename)
                     mh.cleanup(inp)
@@ -339,7 +364,7 @@ for mm in range(0, endCoreSize, coreSizeStep):
 
                 
                 with open(resultfile, 'a') as fid, open(seachoutfile, 'a') as fid2:
-                    fid2.write("{coresize:^10} {thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
+                    fid2.write("{coresize:^10} {thickness:^10} {nacl:^10.4f} {pucl3:^10.4f} {thcl4:^10.4f} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
                     if float(results['keff']) > 0.97 and float(results['keff'])<0.99:
-                        fid.write("{coresize:^10} {thickness:^10} {nacl:^10} {pucl3:^10} {thcl4:^10} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
+                        fid.write("{coresize:^10} {thickness:^10} {nacl:^10.4f} {pucl3:^10.4f} {thcl4:^10.4f} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
 
