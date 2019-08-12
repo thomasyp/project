@@ -26,6 +26,63 @@ def newRadiotoxicity(numberofnuclide):
             else:
                  fid2.write(eachline)
 
+def output(filename, nuclidelist=None, timelist=None, datalist=None, unit='Sv/GWy'):
+    with open(filename, 'w') as fid:
+        fid.write('{:^100}\n'.format(''.join(['Radiotoxicity, ', 'Unit ', unit])))
+        if nuclidelist:
+            fid.write('{:^12}'.format('Time(years)'))
+            for nuclide in nuclidelist:
+                fid.write('{:^14}'.format(nuclide))
+            fid.write('\n')
+        if timelist and datalist:
+            for ii, time in enumerate(timelist):
+                fid.write('{:^12d}'.format(time))
+                for data in datalist:
+                    fid.write('{:^14.4e}'.format(data[ii]))
+                fid.write('\n')
+
+def calculateSVofNuclide(atomnumberofelement, basemassnumberofelement, numofnuclide):
+    svdata = []
+    with open('com_nucl.inp', 'r') as fid3:
+        for eachline in fid3:
+            linelist = eachline.strip().split()
+            if len(linelist) > 2:
+                tagofnuclide = int(linelist[0]) 
+                atomnumber = int(linelist[1])
+                massnumber = int(linelist[2])
+                massofnuclide = float(linelist[3])
+                for ii in range(1,numofnuclide):
+                    massofelement = {}
+                    massnumberofnuclide = ii + basemassnumberofelement
+                    if atomnumber == atomnumberofelement and massnumberofnuclide == massnumber:
+                        massofelement[tagofnuclide] = massofnuclide   
+                        sv = radiation(massofelement)
+                        svdata.append(sv[1:]) 
+    return svdata
+
+def calculateSVofElement(atomnumberofelement):
+    
+    with open('com_nucl.inp', 'r') as fid3:
+        for eachline in fid3:
+            linelist = eachline.strip().split()
+            if len(linelist) > 2:
+                tagofnuclide = int(linelist[0]) 
+                atomnumber = int(linelist[1])
+                massnumber = int(linelist[2])
+                massofnuclide = float(linelist[3])
+                massofelement = {}
+                if atomnumber == atomnumberofelement:
+                    massofelement[tagofnuclide] = massofnuclide   
+                    sv = radiation(massofelement)
+             
+    return sv[1:]
+
+def covert2SvperGWy(svdata, burnup):
+    for ii, row in enumerate(svdata):
+        for jj, data in enumerate(row):
+            svdata[ii][jj] = svdata[ii][jj] / burnup
+    return svdata
+
 def radiation(nucliemassdic):
     with open('nucl_ID.inp', 'r') as fid1, open('rad_ID.inp', 'w') as fid2,\
          open('rad_NC.inp', 'w') as fid3, open('rad_LB.inp', 'w') as fid4:
@@ -88,31 +145,24 @@ def radiation(nucliemassdic):
                             fid1.write('{:^13.5e}'.format(float(data)*fcoef))
                         fid1.write('\n')
     fcurie = []
+    sv = []
     with open('curies_coef.dat', 'r') as fid:
         for line in fid:
             linelist = line.strip().split()
             fcurie.append([float(x) for x in linelist[1:]])
     lenthcolumn = len(fcurie[0])
     lenthrow = len(fcurie)
-    print(fcurie[772][1])
     with open('SV.dat', 'w') as fid:
         for ii in range(lenthcolumn):
             tot = 0
             for jj in range(lenthrow):
                 tot += fcurie[jj][ii]
-
+            sv.append(tot)
             fid.write('{:^13.7e}\n'.format(tot))
+    return sv
     
-
-        
-
-           
-
-
-    
-
 def mainFunc(filename):
-    time = [1, 1, 5]
+    time = [1, 5]
     totHM = 0    
     with open(filename, 'r') as fid:
         listfromfile = fid.readlines()
@@ -125,10 +175,11 @@ def mainFunc(filename):
         print(inpname)
         jj = 1
         for ii in range(4, 23, 3):
-            time.append(1.0 * 10**jj)
-            time.append(2.0 * 10**jj)
-            time.append(5.0 * 10**jj)           
+            time.append(1 * 10**jj)
+            time.append(2 * 10**jj)
+            time.append(5 * 10**jj)           
             jj += 1
+        time = time[:-2]
     with open(inpname, 'r') as fid1, open('sum_HM.dat', 'w') as fid2, open('com_nucl.inp', 'w') as fid3:
         
         for eachline in fid1:
@@ -151,32 +202,41 @@ def mainFunc(filename):
                 atomnumber = int(tagofnuclide / 10000)
                 massnumber = int(tagofnuclide / 10) - atomnumber*1000
                 fid3.write('{:^10d} {:^10d} {:^10d} {:^20.7e}\n'.format(tagofnuclide, atomnumber, massnumber, massofnuclide/totHM*1e6))
-    nuclidedic = {'U':92}
+    
     # for uranium
     basemassnumberofuranium = 231
+    atomnumber = 92
+    numofnuclideinuranium = 8
     
-    with open('com_nucl.inp', 'r') as fid3:
-        for eachline in fid3:
-            linelist = eachline.strip().split()
-            if len(linelist) > 2:
-                tagofnuclide = int(linelist[0]) 
-                atomnumber = int(linelist[1])
-                massnumber = int(linelist[2])
-                massofnuclide = float(linelist[3])
-                for ii in range(1,8):
-                    massofuranium = {}
-                    massnumberofuranium = ii + basemassnumberofuranium
-                    if atomnumber == nuclidedic['U'] and massnumberofuranium == massnumber:
-                        massofuranium[tagofnuclide] = massofnuclide   
-                        radiation(massofuranium)
+    svdata = calculateSVofNuclide(atomnumber, basemassnumberofuranium, numofnuclideinuranium)
+    nuclidelist = ['U-232', 'U-233', 'U-234', 'U-235', 'U-236', 'U-237', \
+                    'U-238']
+    output(''.join(['SVMTHN_', prefixofinp,'_', 'U', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
+    output(''.join(['SVGWy_', prefixofinp,'_', 'U', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
+
+    # for plutonium
+    basemassnumberofplutonium = 237
+    atomnumber = 94
+    numofnuclideinplutonium = 8
     
-    # with open('SV.dat', 'r') as fid
-
+    svdata = calculateSVofNuclide(atomnumber, basemassnumberofplutonium, numofnuclideinplutonium)
+    nuclidelist = ['Pu-238', 'Pu-239', 'Pu-240', 'Pu-241', 'Pu-242', 'Pu-243',\
+         'Pu-244']
+    output(''.join(['SVMTHN_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
+    output(''.join(['SVGWy_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
     
-
-    # outfilename = ''.join(['SVGWy_', prefixofinp, '_', nuclidedic['U'], '.dat'])
-    # with open(outfilename, 'w') as fid:
-
+    #for Th-Cf
+    
+    atomnumber = 89
+    numofelement = 10
+    svdata = []
+    for ii in range(1, numofelement):
+        atomnumber = ii + atomnumber
+        sv = calculateSVofElement(atomnumber)
+        svdata.append(sv)
+    nuclidelist = [Th Pa U Np Pu Am Cm Bk Cf]
+    output(''.join(['SVMTHN_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
+    output(''.join(['SVGWy_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
 
 if __name__ == '__main__':
     mainFunc('input-dose.inp')
