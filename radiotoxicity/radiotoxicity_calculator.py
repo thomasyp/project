@@ -61,7 +61,7 @@ def calculateSVofNuclide(atomnumberofelement, basemassnumberofelement, numofnucl
     return svdata
 
 def calculateSVofElement(atomnumberofelement):
-    
+    massofelement = {}
     with open('com_nucl.inp', 'r') as fid3:
         for eachline in fid3:
             linelist = eachline.strip().split()
@@ -70,10 +70,12 @@ def calculateSVofElement(atomnumberofelement):
                 atomnumber = int(linelist[1])
                 massnumber = int(linelist[2])
                 massofnuclide = float(linelist[3])
-                massofelement = {}
                 if atomnumber == atomnumberofelement:
-                    massofelement[tagofnuclide] = massofnuclide   
-                    sv = radiation(massofelement)
+                    massofelement[tagofnuclide] = massofnuclide
+        if massofelement:  
+            sv = radiation(massofelement)
+        else:
+            sv = [x*0 for x in range(23)]
              
     return sv[1:]
 
@@ -227,17 +229,25 @@ def mainFunc(filename):
     
     #for Th-Cf
     
-    atomnumber = 89
+    baseatomnumber = 89
     numofelement = 10
     svdata = []
     for ii in range(1, numofelement):
-        atomnumber = ii + atomnumber
+        atomnumber = ii + baseatomnumber
+        print(atomnumber)
         sv = calculateSVofElement(atomnumber)
         svdata.append(sv)
-    nuclidelist = [Th Pa U Np Pu Am Cm Bk Cf]
-    output(''.join(['SVMTHN_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
-    output(''.join(['SVGWy_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
+    tot = [0*ii for ii in range(len(svdata[0]))]
+    for sv in svdata:
+        for ii, data in enumerate(sv):
+            tot[ii] += data
 
+    svdata.append(tot)
+    nuclidelist = ['Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'total']
+    output(''.join(['SVMTHN_', prefixofinp, '_', 'Ac', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
+    output(''.join(['SVGWy_', prefixofinp, '_', 'Ac', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
+
+    
 if __name__ == '__main__':
     mainFunc('input-dose.inp')
     # newRadiotoxicity(1)
