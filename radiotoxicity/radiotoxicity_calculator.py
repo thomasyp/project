@@ -208,9 +208,9 @@ def mainFunc(filename):
     # for uranium
     basemassnumberofuranium = 231
     atomnumber = 92
-    numofnuclideinuranium = 8
+    numofnuclideinuranium = 7
     
-    svdata = calculateSVofNuclide(atomnumber, basemassnumberofuranium, numofnuclideinuranium)
+    svdata = calculateSVofNuclide(atomnumber, basemassnumberofuranium, numofnuclideinuranium+1)
     nuclidelist = ['U-232', 'U-233', 'U-234', 'U-235', 'U-236', 'U-237', \
                     'U-238']
     output(''.join(['SVMTHN_', prefixofinp,'_', 'U', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
@@ -219,14 +219,23 @@ def mainFunc(filename):
     # for plutonium
     basemassnumberofplutonium = 237
     atomnumber = 94
-    numofnuclideinplutonium = 8
+    numofnuclideinplutonium = 7
     
-    svdata = calculateSVofNuclide(atomnumber, basemassnumberofplutonium, numofnuclideinplutonium)
+    svdata = calculateSVofNuclide(atomnumber, basemassnumberofplutonium, numofnuclideinplutonium+1)
     nuclidelist = ['Pu-238', 'Pu-239', 'Pu-240', 'Pu-241', 'Pu-242', 'Pu-243',\
          'Pu-244']
     output(''.join(['SVMTHN_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
     output(''.join(['SVGWy_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
+
+    # #for Th
+    # basemassnumberofthorium  = 226
+    # atomnumber = 90
+    # numofnuclideinthorium = 9
     
+    # svdata = calculateSVofNuclide(atomnumber, basemassnumberofthorium, numofnuclideinthorium+1)
+    # nuclidelist = ['Th-226', 'Th-227', 'Th-228', 'Th-229', 'Th-230', 'Th-231', 'Th-232', 'Th-233', 'Th-234']
+    # output(''.join(['SVMTHN_', prefixofinp,'_', 'Th', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
+    # output(''.join(['SVGWy_', prefixofinp,'_', 'Th', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
     #for Th-Cf
     
     baseatomnumber = 89
