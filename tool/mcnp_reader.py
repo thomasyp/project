@@ -8,6 +8,8 @@ Created on Mon Apr 09 14:56:21 2018
 import re
 import numpy as np
 import h5py
+from collections import defaultdict
+from tool.self_defined_exception import CustomError
 
 
 class McnpTallyReader(object):
@@ -431,8 +433,8 @@ class McnpTallyReader(object):
             读取mcnp输出文件中的俘获率，泄漏率以及裂变率（归一到一个源中子）
             case1: cell=None, nuclides=None 返回 总的俘获率，泄漏率以及裂变率（loss to fission）;
             case2: cell!=None, nuclides=None 返回 cell内的俘获率;
-            case3: cell!=None, nuclides!=None 返回 cell内 的nulides 的俘获率;
-            case4: cell=None, nuclides!=None 返回 nulides 的俘获率;
+            case3: cell!=None, nuclides!=None 返回 cell内 的nulides 的俘获率, wgt. gain by fission, wgt. gain by (n,xn);
+            case4: cell=None, nuclides!=None 返回 nulides 的俘获率, wgt. gain by fission, wgt. gain by (n,xn);
 
         Input parameter:
             需要读取的 mcnp输出文件名：outfile
@@ -442,6 +444,13 @@ class McnpTallyReader(object):
             case1:返回俘获率，泄漏率以及裂变率，'photonuclear', '(n,xn)', 'loss to (n,xn)', 'prompt fission', 'delayed fission'。返回类型为字典
             case2,3,4:仅返回俘获率，返回类型为字典
         """
+        if nuclides:
+            try:
+                if type(nuclides) != list:
+                    raise CustomError('Input type of nuclides should be list!')
+            except TypeError as e:
+                print(e)
+                return -1
         results = {}
         tag  = False
         physical_quantity_to_be_read = ['escape', 'loss to fission', 'capture', \
@@ -480,6 +489,7 @@ class McnpTallyReader(object):
             return results
         # cell is not None and nuclides is None:
         elif nuclides is None:
+            start = 0
             content = []
             capturelists = []
             with open(outfile, 'r') as fid:
@@ -495,6 +505,12 @@ class McnpTallyReader(object):
             for ind, ll in enumerate(content):
                 if ll and ll[1] == str(cell):
                     start = ind
+            try:
+                if start == 0:
+                    raise CustomError('Cell {:} not found!'.format(cell))
+            except TypeError as e:
+                print(e)
+                return -1
 
             for ind, ll in enumerate(content[start:]):
                 if ll:
@@ -510,11 +526,11 @@ class McnpTallyReader(object):
 
         # cell is None and nuclides is not None:
         elif cell is None:
-    
+            results = {}
             content = []
             for nuclide in nuclides:
-                results[str(nuclide)] = 0
-
+                results[str(nuclide)] = defaultdict(lambda: 0)
+            
             with open(outfile, 'r') as fid:
                 for eachline in fid:
                     lists = eachline.strip().split()
@@ -530,17 +546,22 @@ class McnpTallyReader(object):
             for ll in content:
                 for nuclide in nuclides:
                     if str(nuclide) in ll[0]:
-                        results[str(nuclide)] = float(ll[3])
+                        results[str(nuclide)]['capture'] = float(ll[3])
+                        results[str(nuclide)]['fission'] = float(ll[4])
+                        results[str(nuclide)]['n,xn'] = float(ll[5])
+                    # else:
+                    #     results[str(nuclide)]['capture'] = 0
 
             return results
 
         # cell is not None and nuclides is not None:
         else:
-            
+            start = 0
             content = []
             capturelists = []
+            results = {}
             for nuclide in nuclides:
-                results[str(nuclide)] = 0
+                results[str(nuclide)] = defaultdict(lambda: 0)
             with open(outfile, 'r') as fid:
                 for eachline in fid:
                     lists = eachline.strip().split()
@@ -554,6 +575,13 @@ class McnpTallyReader(object):
             for ind, ll in enumerate(content):
                 if ll and ll[1] == str(cell):
                     start = ind
+            
+            try:
+                if start == 0:
+                    raise CustomError('Cell {:} not found!'.format(cell))
+            except TypeError as e:
+                print(e)
+                return -1
 
             content = content[start:]
             filtercontent = []
@@ -569,16 +597,20 @@ class McnpTallyReader(object):
             for line in filtercontent:
                 for nuclide in nuclides:
                     if str(nuclide) in line[0]:
-                        results[str(nuclide)] = float(line[4])
+                        results[str(nuclide)]['capture'] = float(line[4])
+                        results[str(nuclide)]['fission'] = float(line[5])
+                        results[str(nuclide)]['n,xn'] = float(line[6])
             return results
 
     def getCR(self, outfile):
         totratedic = self.readNeutronActivity(outfile)
         totfission = totratedic['lossfission']
-        captureDic = self.readNeutronActivity(outfile, nuclides=['90232', '92234', '94240', '91233', '92238', '92233', '92235', '94239', '94241'])
+        activitydic = self.readNeutronActivity(outfile, nuclides=['90232', '92234', '94240', '91233', '92238', '92233', '92235', '94239', '94241'])
+        
         # CR=Rc(Th232 + U234 + U238 + Pu240 -Pa233) / Ra(U233 + U235 + Pu239 + Pu241)
-        CR = (captureDic['90232'] + captureDic['92234'] + captureDic['94240'] + captureDic['92238'] - captureDic['91233'])\
-        /(captureDic['92233'] + captureDic['92235'] + captureDic['94239'] + captureDic['94241'] + totfission)
+        CR = (activitydic['90232']['capture'] + activitydic['92234']['capture'] + activitydic['94240']['capture'] \
+            + activitydic['92238']['capture'] - activitydic['91233']['capture'])/(activitydic['92233']['capture'] + activitydic['92235']['capture'] \
+                + activitydic['94239']['capture'] + activitydic['94241']['capture'] + totfission)
         print(CR)
         return CR
 
@@ -718,15 +750,215 @@ class McnpTallyReader(object):
         
         return results
 
+    
+    def getNuclideKeff(self, filename, cell, matnum, nuclide):
+        '''
+        Fuction:
+            得到燃耗计算输出文件中不同核素对keff的贡献：
+            计算公式为 keff(i) = Rf(i)*V(i)/sum(Rc(j))+L+sum(Rm(j))+sum(Rf(j))
+            V为核素i的平均单词裂变中子数;L 为泄露率；Rf为裂变率；Rc为俘获率；Rm为(n,xn)反应反应率
+        Input parameter:
+            需要读取的 mcnp输出文件名：filename
+            核素nuclide所在的栅元号：cell
+            核素number：nuclide
+        Return:
+            返回类型float, keffbynuclide
+            
+        '''
+
+        nuclidereactionratedic = self.readNeutronActivity(filename, cell=cell, nuclides=nuclide.strip().split())
+        gainbyfissrate = nuclidereactionratedic[nuclide]['fission']    
+        totreactionratedic = self.readNeutronActivity(filename)
+        totfissionrate = totreactionratedic['lossfission']
+        escaperate = totreactionratedic['escape']      
+        totn_xnrate = totreactionratedic['loss(n,xn)']
+        totcapturerate = totreactionratedic['capture']
+        totlossrate = totfissionrate + escaperate + totn_xnrate + totcapturerate
+        # print(totlossrate)
+        nuclideatomdensity = self.getNuclideDensity(filename, cell, matnum, nuclide)
+        # print(nuclideatomdensity)
+        matcarddic = {}
+        keywords = 'multiplier bin:   1.00000E+00'
+        fissreactionnumber = '-6'
+        tag = False
+        cellvolume = self.getTallyVolume(filename, cell)
+        with open(filename, 'r') as fid:
+            for line in fid:
+                contentlist = line.strip().split()
+                if contentlist:
+                    if re.match('\d{1,5}-', contentlist[0]) is not None:
+                        if len(contentlist) > 3:
+                            if re.match(nuclide+'.\d{2}c', contentlist[2]) is not None:
+                                matcarddic[nuclide] = contentlist[1][1:]
+        keywords = ' '.join([keywords, matcarddic[nuclide]])  
+        fissreactionratecontent = ''                      
+        with open(filename, 'r') as fid:
+            for line in fid:
+                contentlist = line.strip().split()
+                if keywords in line and fissreactionnumber in line:
+                    tag = True
+                if line.isspace():
+                    tag = False
+                if tag:
+                    fissreactionratecontent = ''.join([fissreactionratecontent, line])
+        
+        nuclidefissreactionrate = float(fissreactionratecontent.strip().split()[-2]) * nuclideatomdensity
+        keffbynuclide = (nuclidefissreactionrate*cellvolume + gainbyfissrate) / (escaperate + totn_xnrate + totcapturerate + totfissionrate)
+        return keffbynuclide
+
+
+    def getTallyVolume(self, filename, cell):
+        tag = False
+        keywords = 'volumes'
+        content = ''
+        with open(filename, 'r') as fid:
+            for line in fid:
+                contentlist = line.strip().split()
+                if contentlist and contentlist[0] == keywords:
+                    tag = True
+                if line.isspace():
+                    tag = False
+                if tag:
+                    content = ''.join([content, line])
+        contentlist = content.strip().split()
+        return float(contentlist[contentlist.index(cell)+1])
+
+
+    def readMaterialInfo(self, filename):
+        '''
+        Fuction:
+            读取talbe 50 中的栅元的材料的密度、体积、质量等信息
+            
+        Input parameter:
+            需要读取的 mcnp输出文件名：filename
+            
+        Return:
+            返回类型dict, 栅元的材料密度体积等信息
+            
+        '''
+        
+        tag = False
+        resultdic = defaultdict(lambda: 0)
+        
+        startkeywords = '1cell volumes and masses'
+        endkeywords = '1surface areas'
+        with open(filename, 'r') as fid:
+            for line in fid:
+                linelist = line.strip().split()
+                if startkeywords in line:
+                    tag = True
+                if endkeywords in line:
+                    tag = False
+                if tag:
+                    if linelist:
+                        if linelist[0].isdecimal():
+                            resultdic[linelist[1]] = linelist[2:7]
+        
+        return resultdic
+        
+
+
+    def getNuclideDensity(self, filename, cell, matnum, nuclide, mode='atom'):
+        '''
+        Fuction:
+            计算得到某个核素的密度
+            
+        Input parameter:
+            需要读取的 mcnp输出文件名：filename
+            核素number：nuclide
+            核素nuclide所在的材料号：matnum
+            模式：mode 两种模式质量密度（mass） 和 原子数密度（atom）
+        Return:
+            返回类型float, 核素密度
+            
+        '''
+             
+        nuclidefractioninfo = self.readNuclideFraction(filename, mode)
+        nuclidefraction = float(nuclidefractioninfo[matnum][nuclidefractioninfo[matnum].index(nuclide+',')+1])
+        
+        materialatomdensitydic = self.readMaterialInfo(filename)
+        if mode == 'atom':
+            return float(materialatomdensitydic[cell][0])*nuclidefraction
+        else:
+            return float(materialatomdensitydic[cell][1])*nuclidefraction
+
+
+    def readNuclideFraction(self, filename, mode):
+        '''
+        Fuction:
+            读取 table 40 中的核素份额
+            
+        Input parameter:
+            需要读取的 mcnp输出文件名：filename
+            模式：mode 两种模式质量密度（mass） 和 原子数密度（atom）
+        Return:
+            返回类型list, 核素份额
+            
+        '''
+
+        try:
+            if mode != 'atom' and mode != 'mass':
+                raise CustomError('Mode should be mass or atom!')
+        except TypeError as e:
+            print(e)
+            return -1
+
+        if mode == 'atom':
+            keywords = 'component nuclide, atom fraction'
+        else:
+            keywords = 'component nuclide, mass fraction'
+
+        tag = False
+        emptyline = 0
+        contentlist = []
+        content = ''
+        with open(filename, 'r') as fid:
+            for line in fid:
+                if keywords in line:
+                    tag = True
+                if emptyline == 2:
+                    tag = False
+                if tag:
+                    linelist = line.strip().split()
+                    if linelist:
+                        if emptyline == 1:
+                            content = ''.join([content, line])
+                    else:
+                        emptyline += 1
+        contentlist = content.strip().split()
+        splitpos = []
+        for ii, data in enumerate(contentlist):
+            if data.isdecimal():
+                splitpos.append(ii)
+        splitpos.append(len(contentlist))
+        result = defaultdict(lambda: 0)
+        for ii in range(len(splitpos)-1):
+            result[contentlist[splitpos[ii]]] = contentlist[(splitpos[ii]+1):splitpos[ii+1]]
+            # result.append(contentlist[splitpos[ii]:splitpos[ii+1]])
+        return result
+               
+
+       
 
 if __name__ == '__main__':
     mtr = McnpTallyReader()
     # path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\扩大堆芯搜索\\微调\\120r60ko_40.00_6.70_53.30'
-    path = 'E:\\中子产额\\1000MeV\\puthout'
+    path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\r150\\850500OUT\\850500o-1-1'
+    # path = 'D:\\work\\mcnpwork\\lf1\\初步设计\\升版\\能量沉积\\dept.log'
     # path = 'D:\\work\\mcnpwork\\lf1\\初步设计\\核测\\base.log'
-    data = mtr.getNeutronWeightBalance(path, 'n')
-    print(data)
-    
+    # mtr.getCR(path)
+    # test = mtr.readNeutronActivity(path, '4', ['94239'])
+    # print(test)
+    nuclidelist = ['94238', '94239', '94240', '94241', '94242', '90232']
+    keff = 0
+    for nuclide in nuclidelist:
+        keffofnuclide = mtr.getNuclideKeff(path, '4', '1', nuclide)
+        keff = keff + keffofnuclide
+        print(keffofnuclide)
+    print(keff)
+
+    # volume = mtr.getTallyVolume(path, '4')
+    # print(volume)
     # print(num)
     # lists = line.strip().split()
     # print(lists[num:-1])
