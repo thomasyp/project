@@ -776,7 +776,7 @@ class McnpTallyReader(object):
         totlossrate = totfissionrate + escaperate + totn_xnrate + totcapturerate
         # print(totlossrate)
         nuclideatomdensity = self.getNuclideDensity(filename, cell, matnum, nuclide)
-        # print(nuclideatomdensity)
+       
         matcarddic = {}
         keywords = 'multiplier bin:   1.00000E+00'
         fissreactionnumber = '-6'
@@ -803,7 +803,8 @@ class McnpTallyReader(object):
                     fissreactionratecontent = ''.join([fissreactionratecontent, line])
         
         nuclidefissreactionrate = float(fissreactionratecontent.strip().split()[-2]) * nuclideatomdensity
-        keffbynuclide = (nuclidefissreactionrate*cellvolume + gainbyfissrate) / (escaperate + totn_xnrate + totcapturerate + totfissionrate)
+        
+        keffbynuclide = (nuclidefissreactionrate*cellvolume + gainbyfissrate) / totlossrate
         return keffbynuclide
 
 
@@ -874,13 +875,16 @@ class McnpTallyReader(object):
         '''
              
         nuclidefractioninfo = self.readNuclideFraction(filename, mode)
-        nuclidefraction = float(nuclidefractioninfo[matnum][nuclidefractioninfo[matnum].index(nuclide+',')+1])
+        nuclidefractiondic = defaultdict(lambda: 0)
+        if ''.join([nuclide, ',']) in nuclidefractioninfo[matnum]:
+            
+            nuclidefractiondic[nuclide] = float(nuclidefractioninfo[matnum][nuclidefractioninfo[matnum].index(nuclide+',')+1])
         
         materialatomdensitydic = self.readMaterialInfo(filename)
         if mode == 'atom':
-            return float(materialatomdensitydic[cell][0])*nuclidefraction
+            return float(materialatomdensitydic[cell][0])*nuclidefractiondic[nuclide]
         else:
-            return float(materialatomdensitydic[cell][1])*nuclidefraction
+            return float(materialatomdensitydic[cell][1])*nuclidefractiondic[nuclide]
 
 
     def readNuclideFraction(self, filename, mode):
@@ -934,7 +938,7 @@ class McnpTallyReader(object):
         result = defaultdict(lambda: 0)
         for ii in range(len(splitpos)-1):
             result[contentlist[splitpos[ii]]] = contentlist[(splitpos[ii]+1):splitpos[ii+1]]
-            # result.append(contentlist[splitpos[ii]:splitpos[ii+1]])
+            
         return result
                
 
@@ -949,12 +953,12 @@ if __name__ == '__main__':
     # mtr.getCR(path)
     # test = mtr.readNeutronActivity(path, '4', ['94239'])
     # print(test)
-    nuclidelist = ['94238', '94239', '94240', '94241', '94242', '90232']
+    nuclidelist = ['94238', '94239', '94240', '94241', '94242', '90232', '92235']
     keff = 0
     for nuclide in nuclidelist:
         keffofnuclide = mtr.getNuclideKeff(path, '4', '1', nuclide)
         keff = keff + keffofnuclide
-        print(keffofnuclide)
+        print(nuclide, keffofnuclide)
     print(keff)
 
     # volume = mtr.getTallyVolume(path, '4')
