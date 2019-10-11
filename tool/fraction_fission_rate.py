@@ -4,6 +4,7 @@ import pandas as pd
 import re
 from pathlib import Path, PurePath
 import numpy as np
+from collections import defaultdict
 
 def poltCR(foldname, ndict):
     path = foldname + '\\MOBATADS.OUT'
@@ -66,12 +67,25 @@ def getCR(filename, tallydic, cell, matnum, volume):
         captureratedic['92235']+captureratedic['94239']+captureratedic['94241']+\
         fissratedic['92233']+fissratedic['92235']+fissratedic['94239']+\
         fissratedic['94241'])
-    return cr    
+    return cr
+
+def getfissrate(filename, cell, matnum, volume):
+    fissratedic = defaultdict(lambda: 0)
+    nuclidelist = ['90232', '91233', '94239', '94240', '94241', '92233', '92234', '92235', '92238']
+    tallydic = {'1003':'94239', '1005':'94241', '1018':'92233', '1020':'92235'}
+    atomdensitydic = {}
+    for nuclide in nuclidelist:
+        atomdensitydic[nuclide] = mtr.getNuclideDensity(PurePath.joinpath(path, filename), cell, matnum, nuclide)
+    for tallynum, nuclide in tallydic.items():    
+        fisstally = readFmtally(PurePath.joinpath(path, filename), tallynum, '-6')
+        fissratedic[nuclide] = volum * atomdensitydic[nuclide] * fisstally
+    return fissratedic    
+
 
 if __name__ == '__main__':  
     mtr = McnpTallyReader()
-    path = Path('D:\work\mcnpxwork\博士课题\msasd\氯盐堆\\r150\850cOUT')
-    basefilename = '850co'
+    path = Path('D:\work\mcnpxwork\博士课题\msasd\氯盐堆\\r150\850500cOUT')
+    basefilename = '850500co'
     # filename = '-'.join([basefilename, str(1), str(15)])
     # # nuclidelist = ['90232', '91233', '94239', '94240', '94241', '92233', '92234', '92235', '92238']
     # # atomdensitydic = {}
@@ -97,12 +111,12 @@ if __name__ == '__main__':
     # print (atomdensitydic)
     # loopdic = {1:4, 2:5, 3:20}
     loopdic = {1:21}
-    crlist = []
+    fissratelist = []
     for key in loopdic.keys():
         for ii in range(loopdic[key]):
             filename = '-'.join([basefilename, str(key), str(ii+1)])
             print('read file {:}\n'.format(filename))
-            crlist.append(getCR(PurePath.joinpath(path, filename), tallydic, 4, 1, volum))
+            fissratelist.append(getfissrate(PurePath.joinpath(path, filename), 4, 1, volum))
     timelist = np.array([0.00000e+00
      ,6.00000e+02
      ,1.20000e+03
@@ -155,10 +169,16 @@ if __name__ == '__main__':
     #     ,1.18800e+04
     #     ,1.24800e+04
     #     ])
-    outputfile = 'CR.dat'
+    outputfile = 'fissionrate.dat'
+    sumfissrate = []
+    for ii, cr in enumerate(fissratelist):
+        sumfissrate.append(sum(fissratelist[ii].values()))
+    # print(fissratelist)
     with open(PurePath.joinpath(path, outputfile), 'w') as fid:
-        fid.write('{:^12}{:^10}\n'.format('Time (d)', 'CR'))
-        for ii, cr in enumerate(crlist):
-            fid.write('{:^12.5e} {:^10.5f}\n'.format(timelist[ii], cr))
+        fid.write('{:^12} {:^20} {:^20} {:^20} {:^20}\n'.format('Time (d)', 'fiss rate of U233', 'fiss rate of U235', 'fiss rate of Pu239', 'fiss rate of Pu241'))
+        for ii, cr in enumerate(fissratelist):
+            fid.write('{:^12.5e} {:^20.5f} {:^20.5f} {:^20.5f} {:^20.5f}\n'.format(timelist[ii], 
+            fissratelist[ii]['92233']/sumfissrate[ii], fissratelist[ii]['92235']/sumfissrate[ii], 
+            fissratelist[ii]['94239']/sumfissrate[ii], fissratelist[ii]['94241']/sumfissrate[ii]))
             
 

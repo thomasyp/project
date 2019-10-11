@@ -611,7 +611,7 @@ class McnpTallyReader(object):
         CR = (activitydic['90232']['capture'] + activitydic['92234']['capture'] + activitydic['94240']['capture'] \
             + activitydic['92238']['capture'] - activitydic['91233']['capture'])/(activitydic['92233']['capture'] + activitydic['92235']['capture'] \
                 + activitydic['94239']['capture'] + activitydic['94241']['capture'] + totfission)
-        print(CR)
+        print(activitydic)
         return CR
 
     def getNeutronYield(self, outfile):
@@ -873,10 +873,11 @@ class McnpTallyReader(object):
             返回类型float, 核素密度
             
         '''
-             
+        matnum = str(matnum) 
+        cell = str(cell)    
         nuclidefractioninfo = self.readNuclideFraction(filename, mode)
         nuclidefractiondic = defaultdict(lambda: 0)
-        if ''.join([nuclide, ',']) in nuclidefractioninfo[matnum]:
+        if ''.join([nuclide, ',']) in nuclidefractioninfo[str(matnum)]:
             
             nuclidefractiondic[nuclide] = float(nuclidefractioninfo[matnum][nuclidefractioninfo[matnum].index(nuclide+',')+1])
         
@@ -947,19 +948,19 @@ class McnpTallyReader(object):
 if __name__ == '__main__':
     mtr = McnpTallyReader()
     # path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\扩大堆芯搜索\\微调\\120r60ko_40.00_6.70_53.30'
-    path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\r150\\850500OUT\\850500o-1-1'
+    # path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\中子学参数计算forCR\\test.log'
     # path = 'D:\\work\\mcnpwork\\lf1\\初步设计\\升版\\能量沉积\\dept.log'
-    # path = 'D:\\work\\mcnpwork\\lf1\\初步设计\\核测\\base.log'
-    # mtr.getCR(path)
+    path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\r150\\8501gcOUT\\8501gco-1-15'
+    test = mtr.readNuclideFraction(path, 'atom')
     # test = mtr.readNeutronActivity(path, '4', ['94239'])
-    # print(test)
-    nuclidelist = ['94238', '94239', '94240', '94241', '94242', '90232', '92235']
-    keff = 0
-    for nuclide in nuclidelist:
-        keffofnuclide = mtr.getNuclideKeff(path, '4', '1', nuclide)
-        keff = keff + keffofnuclide
-        print(nuclide, keffofnuclide)
-    print(keff)
+    print(test.keys())
+    # nuclidelist = ['94238', '94239', '94240', '94241', '94242', '90232', '92235']
+    # keff = 0
+    # for nuclide in nuclidelist:
+    #     keffofnuclide = mtr.getNuclideKeff(path, '4', '1', nuclide)
+    #     keff = keff + keffofnuclide
+    #     print(nuclide, keffofnuclide)
+    # print(keff)
 
     # volume = mtr.getTallyVolume(path, '4')
     # print(volume)
