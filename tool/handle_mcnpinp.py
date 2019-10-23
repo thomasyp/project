@@ -198,9 +198,7 @@ class McnpinpHandler(object):
             line = ''
             numSeparator = 0
             for eachline in content:
-                # print(eachline)
-                # if eachline.strip() != '' and eachline.split()[0] == 'c':
-                #     continue
+                
                 if eachline.strip() == '':
 
                     lists = line.strip().split()

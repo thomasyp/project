@@ -1,8 +1,10 @@
 import os 
+import pkgutil
 
 def newRadiotoxicity(numberofnuclide):
-    with open('new_radiotoxicity.inp', 'r') as fid1, open('radiotoxicity.inp', 'w') as fid2:
-        for eachline in fid1:
+    contents = getDataInPackage('new_radiotoxicity.inp').split('\r\n')
+    with open('radiotoxicity.inp', 'w') as fid2:
+        for eachline in contents:
             if 'n56_13.inp' in eachline:
                 fid2.write("a13     {:d}\n".format(numberofnuclide))
             elif 'rad_ID.inp' in eachline:
@@ -24,7 +26,7 @@ def newRadiotoxicity(numberofnuclide):
                         if linelist:
                             fid2.write(line)
             else:
-                 fid2.write(eachline)
+                 fid2.write(eachline+'\n')
 
 def output(filename, nuclidelist=None, timelist=None, datalist=None, unit='Sv/GWy'):
     with open(filename, 'w') as fid:
@@ -51,13 +53,14 @@ def calculateSVofNuclide(atomnumberofelement, basemassnumberofelement, numofnucl
                 atomnumber = int(linelist[1])
                 massnumber = int(linelist[2])
                 massofnuclide = float(linelist[3])
-                for ii in range(1,numofnuclide):
+                for ii in range(1, numofnuclide):
                     massofelement = {}
                     massnumberofnuclide = ii + basemassnumberofelement
                     if atomnumber == atomnumberofelement and massnumberofnuclide == massnumber:
                         massofelement[tagofnuclide] = massofnuclide   
                         sv = radiation(massofelement)
-                        svdata.append(sv[1:]) 
+                        svdata.append(sv[1:])
+        # print(massofelement) 
     return svdata
 
 def calculateSVofElement(atomnumberofelement):
@@ -72,7 +75,8 @@ def calculateSVofElement(atomnumberofelement):
                 massofnuclide = float(linelist[3])
                 if atomnumber == atomnumberofelement:
                     massofelement[tagofnuclide] = massofnuclide
-        if massofelement:  
+        if massofelement:
+            # print(massofelement)  
             sv = radiation(massofelement)
         else:
             sv = [x*0 for x in range(23)]
@@ -86,12 +90,13 @@ def covert2SvperGWy(svdata, burnup):
     return svdata
 
 def radiation(nucliemassdic):
-    with open('nucl_ID.inp', 'r') as fid1, open('rad_ID.inp', 'w') as fid2,\
+    nuclID = getDataInPackage('nucl_ID.inp').split('\r\n')
+    with open('rad_ID.inp', 'w') as fid2,\
          open('rad_NC.inp', 'w') as fid3, open('rad_LB.inp', 'w') as fid4:
         fid2.write("73$$   ")
         fid3.write("74**   ")
         fid4.write("75$$   ")
-        for eachline in fid1:
+        for eachline in nuclID:
             linelist = eachline.strip().split()
             if linelist and linelist[1].isdigit():
                 nuclidelable = linelist[0]
@@ -130,11 +135,12 @@ def radiation(nucliemassdic):
                             fid2.write(line[12:].strip())
                     else:
                         fid2.write(line)
-    with open('curies_coef.dat', 'w') as fid1, open('r-coef.inp', 'r') as fid2,\
-        open('curies.dat', 'r') as fid3:
+
+    rcoef = getDataInPackage('r-coef.inp').split('\r\n')
+    with open('curies_coef.dat', 'w') as fid1, open('curies.dat', 'r') as fid3:
         lists = fid3.readlines()
         
-        for line in fid2:
+        for line in rcoef:
             linelist = line.strip().split()
             if linelist:
                 tagofnuclide = linelist[0]
@@ -162,7 +168,12 @@ def radiation(nucliemassdic):
             sv.append(tot)
             fid.write('{:^13.7e}\n'.format(tot))
     return sv
-    
+
+def getDataInPackage(filename):
+    data_bytes = pkgutil.get_data(__package__, filename)
+    data_str = data_bytes.decode("utf8")
+    return data_str
+
 def mainFunc(filename):
     time = [1, 5]
     totHM = 0    
@@ -190,7 +201,7 @@ def mainFunc(filename):
                 tagofnuclide = int(linelist[0])
                 massofnuclide = float(linelist[1])
                 if tagofnuclide > 890000:
-                        totHM += massofnuclide
+                    totHM += massofnuclide
         fid2.write('{:}\n'.format('总重金属质量(g)'))
         fid2.write('{:.7e}'.format(totHM))
 
@@ -243,7 +254,7 @@ def mainFunc(filename):
     svdata = []
     for ii in range(1, numofelement):
         atomnumber = ii + baseatomnumber
-        print(atomnumber)
+        # print(atomnumber)
         sv = calculateSVofElement(atomnumber)
         svdata.append(sv)
     tot = [0*ii for ii in range(len(svdata[0]))]
