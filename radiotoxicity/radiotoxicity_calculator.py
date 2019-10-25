@@ -1,5 +1,6 @@
 import os 
 import pkgutil
+from tool.self_defined_exception import CustomError
 
 def newRadiotoxicity(numberofnuclide):
     contents = getDataInPackage('new_radiotoxicity.inp').split('\r\n')
@@ -174,7 +175,14 @@ def getDataInPackage(filename):
     data_str = data_bytes.decode("utf8")
     return data_str
 
-def mainFunc(filename):
+def mainFunc(filename, toxicitytype='Ac'):
+    try:
+        if toxicitytype not in ['Ac', 'FP']:
+            raise CustomError('Unrecognizedtoxicity type!')
+    except TypeError as e:
+        print(e)
+        return -1
+
     time = [1, 5]
     totHM = 0    
     with open(filename, 'r') as fid:
@@ -215,59 +223,81 @@ def mainFunc(filename):
                 atomnumber = int(tagofnuclide / 10000)
                 massnumber = int(tagofnuclide / 10) - atomnumber*1000
                 fid3.write('{:^10d} {:^10d} {:^10d} {:^20.7e}\n'.format(tagofnuclide, atomnumber, massnumber, massofnuclide/totHM*1e6))
-    
-    # for uranium
-    basemassnumberofuranium = 231
-    atomnumber = 92
-    numofnuclideinuranium = 7
-    
-    svdata = calculateSVofNuclide(atomnumber, basemassnumberofuranium, numofnuclideinuranium+1)
-    nuclidelist = ['U-232', 'U-233', 'U-234', 'U-235', 'U-236', 'U-237', \
-                    'U-238']
-    output(''.join(['SVMTHN_', prefixofinp,'_', 'U', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
-    output(''.join(['SVGWy_', prefixofinp,'_', 'U', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
+    if toxicitytype == 'Ac':
+        # for uranium
+        basemassnumberofuranium = 231
+        atomnumber = 92
+        numofnuclideinuranium = 7
+        
+        svdata = calculateSVofNuclide(atomnumber, basemassnumberofuranium, numofnuclideinuranium+1)
+        nuclidelist = ['U-232', 'U-233', 'U-234', 'U-235', 'U-236', 'U-237', \
+                        'U-238']
+        output(''.join(['SVMTHN_', prefixofinp,'_', 'U', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
+        output(''.join(['SVGWy_', prefixofinp,'_', 'U', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
 
-    # for plutonium
-    basemassnumberofplutonium = 237
-    atomnumber = 94
-    numofnuclideinplutonium = 7
-    
-    svdata = calculateSVofNuclide(atomnumber, basemassnumberofplutonium, numofnuclideinplutonium+1)
-    nuclidelist = ['Pu-238', 'Pu-239', 'Pu-240', 'Pu-241', 'Pu-242', 'Pu-243',\
-         'Pu-244']
-    output(''.join(['SVMTHN_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
-    output(''.join(['SVGWy_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
+        # for plutonium
+        basemassnumberofplutonium = 237
+        atomnumber = 94
+        numofnuclideinplutonium = 7
+        
+        svdata = calculateSVofNuclide(atomnumber, basemassnumberofplutonium, numofnuclideinplutonium+1)
+        nuclidelist = ['Pu-238', 'Pu-239', 'Pu-240', 'Pu-241', 'Pu-242', 'Pu-243',\
+            'Pu-244']
+        output(''.join(['SVMTHN_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
+        output(''.join(['SVGWy_', prefixofinp,'_', 'Pu', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
 
-    # #for Th
-    # basemassnumberofthorium  = 226
-    # atomnumber = 90
-    # numofnuclideinthorium = 9
-    
-    # svdata = calculateSVofNuclide(atomnumber, basemassnumberofthorium, numofnuclideinthorium+1)
-    # nuclidelist = ['Th-226', 'Th-227', 'Th-228', 'Th-229', 'Th-230', 'Th-231', 'Th-232', 'Th-233', 'Th-234']
-    # output(''.join(['SVMTHN_', prefixofinp,'_', 'Th', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
-    # output(''.join(['SVGWy_', prefixofinp,'_', 'Th', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
-    #for Th-Cf
-    
-    baseatomnumber = 89
-    numofelement = 10
-    svdata = []
-    for ii in range(1, numofelement):
-        atomnumber = ii + baseatomnumber
-        # print(atomnumber)
-        sv = calculateSVofElement(atomnumber)
-        svdata.append(sv)
-    tot = [0*ii for ii in range(len(svdata[0]))]
-    for sv in svdata:
-        for ii, data in enumerate(sv):
-            tot[ii] += data
+        # #for Th
+        # basemassnumberofthorium  = 226
+        # atomnumber = 90
+        # numofnuclideinthorium = 9
+        
+        # svdata = calculateSVofNuclide(atomnumber, basemassnumberofthorium, numofnuclideinthorium+1)
+        # nuclidelist = ['Th-226', 'Th-227', 'Th-228', 'Th-229', 'Th-230', 'Th-231', 'Th-232', 'Th-233', 'Th-234']
+        # output(''.join(['SVMTHN_', prefixofinp,'_', 'Th', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
+        # output(''.join(['SVGWy_', prefixofinp,'_', 'Th', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
+        
+        #for Th-Cf
+        baseatomnumber = 89
+        numofelement = 10
+        svdata = []
+        for ii in range(1, numofelement):
+            atomnumber = ii + baseatomnumber
+            # print(atomnumber)
+            sv = calculateSVofElement(atomnumber)
+            svdata.append(sv)
+        tot = [0*ii for ii in range(len(svdata[0]))]
+        for sv in svdata:
+            for ii, data in enumerate(sv):
+                tot[ii] += data
 
-    svdata.append(tot)
-    nuclidelist = ['Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'total']
-    output(''.join(['SVMTHN_', prefixofinp, '_', 'Ac', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
-    output(''.join(['SVGWy_', prefixofinp, '_', 'Ac', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
-
+        svdata.append(tot)
+        nuclidelist = ['Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'total']
+        output(''.join(['SVMTHN_', prefixofinp, '_', 'Ac', '.dat']), nuclidelist, time, svdata, unit='Sv/MTHN')
+        output(''.join(['SVGWy_', prefixofinp, '_', 'Ac', '.dat']), nuclidelist, time, covert2SvperGWy(svdata, burnup), unit='Sv/GWy')
+    else:
+        #for FP
+        baseatomnumber = 1
+        numofelement = 80
+        skiplist = [48, 52, 67, 76]
+        svdata = []
+        for ii in range(1, numofelement):
+            atomnumber = ii + baseatomnumber
+            print("starting atom number: {:}".format(atomnumber))
+            if atomnumber in skiplist:
+                continue
+            sv = calculateSVofElement(atomnumber)
+            svdata.append(sv)
+        tot = [0*ii for ii in range(len(svdata[0]))]
+        for sv in svdata:
+            for ii in range(len(tot)):
+                tot[ii] += sv[ii]
+        svdata.append(tot)
+        nuclidelist = ['total']
+        output(''.join(['SVMTHN_', prefixofinp, '_', 'FP', '.dat']), nuclidelist, time, [svdata[-1]], unit='Sv/MTHN')
+        output(''.join(['SVGWy_', prefixofinp, '_', 'FP', '.dat']), nuclidelist, time, covert2SvperGWy([svdata[-1]], burnup), unit='Sv/GWy')
     
+
+
 if __name__ == '__main__':
     mainFunc('input-dose.inp')
     # newRadiotoxicity(1)
