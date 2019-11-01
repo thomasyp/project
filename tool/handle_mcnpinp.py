@@ -8,6 +8,7 @@ Created on Thu Nov 26 10:15:47 2018
 
 import os
 import re
+from tool.self_defined_exception import CustomError
 
 class McnpinpHandler(object):
     CELL_SECTION = 0
@@ -16,7 +17,18 @@ class McnpinpHandler(object):
 
     def __init__(self):
         pass
-    
+
+    def copyinp(self, inpname, newinpname):
+        try:
+            if inpname == newinpname:
+                raise CustomError('The copied file and the the target file are same!')
+        except TypeError as e:
+            print(e)
+            return -1
+        with open(inpname, 'r') as fread, open(newinpname, 'w') as fwrite:
+            for eachline in fread:
+                fwrite.write(eachline)
+
     def readContent(self, inpname, designator, section='cell'):
         """
             Function: read content from  mcnp input card.

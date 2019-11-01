@@ -101,8 +101,9 @@ class McnpTallyReader(object):
             readTag[key] = False
             datadict[key] = []
 
-        with open(filename, 'r') as fileid:
+        with open(filename, 'rb') as fileid:
             for eachline in fileid:
+                eachline = eachline.decode('utf-8', 'ignore')
                 lists = eachline.strip().split()
                 if len(lists) > 0:
                     if lists[0] == 'there':

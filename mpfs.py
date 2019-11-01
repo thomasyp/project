@@ -17,7 +17,7 @@ postion, the variable actually equal tothe 180 - insert postion.
 @author: Thomas Yang
 """
 
-from handle_mcnpinp import McnpinpHandler 
+from tool.handle_mcnpinp import McnpinpHandler 
 from control_rod import ControlRod
 import os
 from powerdistribution import computePowerDesityDistribution
