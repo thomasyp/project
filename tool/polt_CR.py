@@ -33,6 +33,7 @@ def poltCR(foldname, ndict):
     plt.xlabel('Time (days)')
     plt.ylabel('CR')
     plt.show()
+
 def readFmtally(filename, tallynum, reaction):
     tag = False
     tally = 0
@@ -54,13 +55,14 @@ def getCR(filename, tallydic, cell, matnum, volume):
     captureratedic = {}
     fissratedic = {}
     atomdensitydic = {}
+    mtr = McnpTallyReader()
     for nuclide in nuclidelist:
-        atomdensitydic[nuclide] = mtr.getNuclideDensity(PurePath.joinpath(path, filename), cell, matnum, nuclide)
+        atomdensitydic[nuclide] = mtr.getNuclideDensity(filename, cell, matnum, nuclide)
     for tallynum, nuclide in tallydic.items():    
-        capturetally = readFmtally(PurePath.joinpath(path, filename), tallynum, '102')
-        fisstally = readFmtally(PurePath.joinpath(path, filename), tallynum, '-6')
-        captureratedic[nuclide] = volum * atomdensitydic[nuclide] * capturetally
-        fissratedic[nuclide] = volum * atomdensitydic[nuclide] * fisstally
+        capturetally = readFmtally(filename, tallynum, '102')
+        fisstally = readFmtally(filename, tallynum, '-6')
+        captureratedic[nuclide] = volume * atomdensitydic[nuclide] * capturetally
+        fissratedic[nuclide] = volume * atomdensitydic[nuclide] * fisstally
     cr = (captureratedic['90232']+captureratedic['92234']+captureratedic['92238']+\
         captureratedic['94240']-captureratedic['91233']) / (captureratedic['92233']+\
         captureratedic['92235']+captureratedic['94239']+captureratedic['94241']+\
@@ -75,7 +77,8 @@ if __name__ == '__main__':
     # filename = '-'.join([basefilename, str(1), str(15)])
     # # nuclidelist = ['90232', '91233', '94239', '94240', '94241', '92233', '92234', '92235', '92238']
     # # atomdensitydic = {}
-    tallydic = {'1004':'94240', '1003':'94239', '1005':'94241', '1007':'90232', '1016':'91233', '1018':'92233', '1020':'92235', '1019':'92234', '1023':'92238'}
+    tallydic = {'1004':'94240', '1003':'94239', '1005':'94241', '1007':'90232', 
+    '1016':'91233', '1018':'92233', '1020':'92235', '1019':'92234', '1023':'92238'}
     volum = 2.12058E+07
     # captureratedic = {}
     # fissratedic = {}
