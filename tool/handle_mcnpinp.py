@@ -57,7 +57,8 @@ class McnpinpHandler(object):
             # empty line case
             if eachline.strip() == '':
                 lists = line.strip().split()
-                if lists and lists[0] == str(designator) and numSeparator == numsp:
+                # if lists and lists[0] == str(designator) and numSeparator == numsp:
+                if lists and re.match(str(designator), lists[0], re.I) and numSeparator == numsp:
                     targetline = line
                     return targetline
                 else:
@@ -66,7 +67,8 @@ class McnpinpHandler(object):
             # mcnp card start line case
             elif eachline[0] != ' ' and re.match(eachline.split()[0], 'c', re.I) is None:
                 lists = line.strip().split()
-                if lists and lists[0] == str(designator) and numSeparator == numsp:
+                # if lists and lists[0] == str(designator) and numSeparator == numsp:
+                if lists and re.match(str(designator), lists[0], re.I) and numSeparator == numsp:
                     targetline = line
                     return targetline
                 else:
@@ -79,7 +81,8 @@ class McnpinpHandler(object):
                 line = line + eachline
         # end of the file case
         lists = line.strip().split()
-        if lists and lists[0] == str(designator) and numSeparator == numsp:
+        # if lists and lists[0] == str(designator) and numSeparator == numsp:
+        if lists and re.match(str(designator), lists[0], re.I) and numSeparator == numsp:
             targetline = line
             return targetline    
         

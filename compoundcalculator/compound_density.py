@@ -16,51 +16,67 @@ class BaseClass():
     def getLabel(self):
         return self.label
 
-class Isotope(BaseClass):
+
+class Nuclide(BaseClass):
     def __init__(self, label, an, mn):
-        super(Isotope, self).__init__(label)
+        super().__init__(label)
         self.atomicNumber = an
-        self.massNumber = mn
+        self.mass = mn
 
     def getAtomicNumber(self):
         return self.atomicNumber
 
-    def getMassNumber(self):
-        return self.massNumber
+    def getMass(self):
+        return self.mass
 
-class Nuclide(BaseClass):
-    def __init__(self, label, isotopeDict):
-        super(Nuclide, self).__init__(label)
-        self.isotopeDict = isotopeDict
-        tot = 0
+
+class Element(BaseClass):
+    def __init__(self, label, nuclidedict):
+        super().__init__(label)
+        self.nuclidedict = nuclidedict
+
+    def getNuclide(self):
+        return self.nuclidedict
+
+    def getActomicAbundance(self):
+        tot = sum([massabundance for massabundance in self.nuclidedict.values()])
+        actomic_abudance_dic = {}
+        if abs(tot - 1) > 1e-6:
+            print('Warning! the nuclide {:} abundance does not add up to 1!'.format(
+                self.getLabel()))
+        totmolar = sum([massabundance/nuclide.getMass() for nuclide, massabundance 
+        in self.nuclidedict.items()])
+        for nuclide, massabundance in self.nuclidedict.items():
+            actomic_abudance_dic[nuclide] = massabundance/nuclide.getMass() / totmolar
+        return actomic_abudance_dic
+
+    def getMass(self):
         mass = 0
-        for key, item in self.isotopeDict.items():
-            tot += item
-            mass += key.getMassNumber() * item
-        self.actomicMass = mass / tot
+        tot = 0
+        actomic_abudance_dic = self.getActomicAbundance()
+        for nuclide, abudance in actomic_abudance_dic.items():
+            tot += abudance
+            mass += nuclide.getMass() * abudance
+        mass = mass / tot 
+        return mass
 
-    def getIsotope(self):
-        return self.isotopeDict
-
-    def getActomicMass(self):
-        return self.actomicMass
 
 class Compound(BaseClass):
-    def __init__(self, lable, nuclideDict, p_a, p_b):
-        super(Compound, self).__init__(lable)
-        self.nuclideDict = nuclideDict
+    def __init__(self, lable, elementdict, p_a, p_b):
+        super().__init__(lable)
+        self.elementdict = elementdict
         self.p_a = p_a
         self.p_b = p_b
         mass = 0
-        for key, item in self.nuclideDict.items():
-            mass += key.getActomicMass() * item
-        self.actomicMass = mass
+        for key, item in self.elementdict.items():
+            mass += key.getMass() * item
+        self.mass = mass
 
-    def getNuclide(self):
-        return self.nuclideDict
+    def getElement(self):
+        return self.elementdict
 
-    def getActomicMass(self):
-        return self.actomicMass
+    def getMass(self):
+        return self.mass
         
     def getDensity(self, temp):
         """
@@ -70,55 +86,56 @@ class Compound(BaseClass):
         return self.p_a - self.p_b * temp 
         
     def getMolarVolume(self, temp):
-        return self.actomicMass / self.getDensity(temp)
+        return self.mass / self.getDensity(temp)
+
 
 class Material(BaseClass):
-    def __init__(self, lable, compoundDict, temp):
-        super(Material, self).__init__(lable)
-        self.compoundDict = compoundDict
+    def __init__(self, lable, compounddict, temp):
+        super().__init__(lable)
+        self.compounddict = compounddict
         self.temp = temp
 
     def getCompound(self):
-        return self.compoundDict
+        return self.compounddict
 
     def getDensity(self):
         mass = 0
         volum = 0
-        for key, item in self.compoundDict.items():
-            mass += key.getActomicMass() * item
+        for key, item in self.compounddict.items():
+            mass += key.getMass() * item
             volum += key.getMolarVolume(self.temp) * item
             # print(key, item)
 
         return mass / volum
 
     def toMcnpCard(self):
-        totnuclideDict = {}
-        for compound, molar in self.compoundDict.items():
-            nuclideDict = compound.getNuclide()
-            for nuclide, num in nuclideDict.items():
-                if nuclide in totnuclideDict.keys():
-                    totnuclideDict[nuclide] += num * molar
+        totelementdict = {}
+        for compound, molar in self.compounddict.items():
+            elementdict = compound.getElement()
+            for element, num in elementdict.items():
+                if element in totelementdict.keys():
+                    totelementdict[element] += num * molar
                 else:
-                    totnuclideDict[nuclide] = num * molar
+                    totelementdict[element] = num * molar
         
-        totIsotopeDict = {}
-        for nuclide, num in totnuclideDict.items():
-            isotopeDic = nuclide.getIsotope()
-            for isotope, at in isotopeDic.items():
-                totIsotopeDict[isotope] = num * at
+        totnuclidedict = {}
+        for nuclide, num in totelementdict.items():
+            nuclidedic = nuclide.getNuclide()
+            for nuclide, at in nuclidedic.items():
+                totnuclidedict[nuclide] = num * at
         
-        normaConstant = sum(totIsotopeDict.values())
+        normaconstant = sum(totnuclidedict.values())
         lines = ''
-        for isotope, num in totIsotopeDict.items():
+        for nuclide, num in totnuclidedict.items():
             if num != 0:
-                line = "{:}{:}{:<12}  {:<12.6e}\n".format(isotope.getAtomicNumber(),
-                    self.mcnpIsotopeNotation(isotope.getLabel()), self.tem2suffix(), num/normaConstant)
+                line = "{:}{:}{:<12}  {:<12.6e}\n".format(nuclide.getAtomicNumber(),
+                    self.mcnpNuclideNotation(nuclide.getLabel()), self.tem2suffix(), num/normaconstant)
                 lines += line 
-            # print("{:}{:<10}  {:<12.6e}".format(isotope.getAtomicNumber(), isotope.getLabel(), num/normaConstant))
+            # print("{:}{:<10}  {:<12.6e}".format(Nuclide.getAtomicNumber(), Nuclide.getLabel(), num/normaConstant))
         return lines
 
-    def mcnpIsotopeNotation(self, isotopelabel):
-        lists = [''.join(list(g)) for k, g in groupby(isotopelabel, key=lambda x: x.isdigit())]
+    def mcnpNuclideNotation(self, nuclidelabel):
+        lists = [''.join(list(g)) for k, g in groupby(nuclidelabel, key=lambda x: x.isdigit())]
         if len(lists[1]) == 1:
             return '00'+lists[1]
         elif len(lists[1]) == 2:
@@ -135,24 +152,24 @@ class Material(BaseClass):
 
 
 if __name__ == '__main__':
-    u235 = Isotope('U235', 92, 235.043923)
-    u233 = Isotope('U233', 92, 233.043923)
-    u238 = Isotope('U238', 92, 238.050783)
-    th232 = Isotope('Th232', 90, 232.03805)
-    pu238 = Isotope('Pu238', 94, 238.0)
-    pu239 = Isotope('Pu239', 94, 239.0)
-    pu240 = Isotope('Pu240', 94, 240.0)
-    pu241 = Isotope('Pu241', 94, 241.0)
-    pu242 = Isotope('Pu242', 94, 242.0)
-    f19 = Isotope('F19', 9, 18.998403)
-    be9 = Isotope('Be9', 4, 9.012182)
-    li6 = Isotope('li6', 3, 6.015122)
-    li7 = Isotope('li7', 3, 7.016004)
-    cl37 = Isotope('cl37', 17, 36.965903)
-    mg24= Isotope('mg24', 12, 23.985042)
-    mg25= Isotope('mg25', 12, 24.985837)
-    mg26= Isotope('mg26', 12, 25.982593)
-    na23 = Isotope('na23', 11, 22.989770)
+    u235 = Nuclide('U235', 92, 235.043923)
+    u233 = Nuclide('U233', 92, 233.043923)
+    u238 = Nuclide('U238', 92, 238.050783)
+    th232 = Nuclide('Th232', 90, 232.03805)
+    pu238 = Nuclide('Pu238', 94, 238.0)
+    pu239 = Nuclide('Pu239', 94, 239.0)
+    pu240 = Nuclide('Pu240', 94, 240.0)
+    pu241 = Nuclide('Pu241', 94, 241.0)
+    pu242 = Nuclide('Pu242', 94, 242.0)
+    f19 = Nuclide('F19', 9, 18.998403)
+    be9 = Nuclide('Be9', 4, 9.012182)
+    li6 = Nuclide('li6', 3, 6.015122)
+    li7 = Nuclide('li7', 3, 7.016004)
+    cl37 = Nuclide('cl37', 17, 36.965903)
+    mg24= Nuclide('mg24', 12, 23.985042)
+    mg25= Nuclide('mg25', 12, 24.985837)
+    mg26= Nuclide('mg26', 12, 25.982593)
+    na23 = Nuclide('na23', 11, 22.989770)
     udict = {u235:0.1995, u238:0.8005}
     # udict = {u233:1}
     lidict = {li6:0.0005, li7:0.9995}
@@ -161,15 +178,16 @@ if __name__ == '__main__':
     pudict = {pu238:0.019497, pu239:0.5875682, pu240:0.2371, pu241:0.10133776, pu242:0.05449704}
     mgdict = {mg24:0.7899, mg25:0.10, mg26:0.1101}
     nadict = {na23:1}
-    cl = Nuclide('Cl', cldict)
-    u = Nuclide('U', udict)
-    f = Nuclide("F", fdict)
-    li = Nuclide("Li", lidict)
-    th = Nuclide("Th", {th232:1})
-    be = Nuclide("Be", {be9:1})
-    pu = Nuclide("Pu", pudict)
-    mg = Nuclide("Mg", mgdict)
-    na = Nuclide("Na", nadict)
+    cl = Element('Cl', cldict)
+    u = Element('U', udict)
+    f = Element("F", fdict)
+    li = Element("Li", lidict)
+    th = Element("Th", {th232:1})
+    be = Element("Be", {be9:1})
+    pu = Element("Pu", pudict)
+    
+    mg = Element("Mg", mgdict)
+    na = Element("Na", nadict)
     nacldict = {na:1, cl:1}
     thcl4dict = {th:1, cl:4}
     thf4dict = {th:1, f:4}
