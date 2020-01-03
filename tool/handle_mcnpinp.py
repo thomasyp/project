@@ -58,23 +58,23 @@ class McnpinpHandler(object):
             if eachline.strip() == '':
                 lists = line.strip().split()
                 # if lists and lists[0] == str(designator) and numSeparator == numsp:
-                if lists and re.match(str(designator), lists[0], re.I) and numSeparator == numsp:
+                if lists and re.fullmatch(str(designator), lists[0], re.I) and numSeparator == numsp:
                     targetline = line
                     return targetline
                 else:
                     line = eachline
                 numSeparator += 1
             # mcnp card start line case
-            elif eachline[0] != ' ' and re.match(eachline.split()[0], 'c', re.I) is None:
+            elif eachline[0] != ' ' and re.fullmatch(eachline.split()[0], 'c', re.I) is None:
                 lists = line.strip().split()
                 # if lists and lists[0] == str(designator) and numSeparator == numsp:
-                if lists and re.match(str(designator), lists[0], re.I) and numSeparator == numsp:
+                if lists and re.fullmatch(str(designator), lists[0], re.I) and numSeparator == numsp:
                     targetline = line
                     return targetline
                 else:
                     line = eachline
             # annotation line case
-            elif eachline[0] != ' ' and re.match(eachline.split()[0], 'c', re.I) is not None:
+            elif eachline[0] != ' ' and re.fullmatch(eachline.split()[0], 'c', re.I) is not None:
                 pass
             # mcnp card continuation line case
             else:
@@ -82,7 +82,7 @@ class McnpinpHandler(object):
         # end of the file case
         lists = line.strip().split()
         # if lists and lists[0] == str(designator) and numSeparator == numsp:
-        if lists and re.match(str(designator), lists[0], re.I) and numSeparator == numsp:
+        if lists and re.fullmatch(str(designator), lists[0], re.I) and numSeparator == numsp:
             targetline = line
             return targetline    
         
@@ -108,7 +108,7 @@ class McnpinpHandler(object):
                 if lines:
                     if section == McnpinpHandler.CELL_SECTION:
                         if eachline[0].isspace() is False:
-                            if re.match(eachline.split()[0], 'c', re.I) is not None:
+                            if re.fullmatch(eachline.split()[0], 'c', re.I) is not None:
                                 pass
                             else:
                                 lists = eachline.strip().split()                                
@@ -140,7 +140,7 @@ class McnpinpHandler(object):
                 if lines:
                     if section == McnpinpHandler.SURFACE_SECTION:
                         if eachline[0].isspace() is False:
-                            if re.match(eachline.split()[0], 'c', re.I) is not None:
+                            if re.fullmatch(eachline.split()[0], 'c', re.I) is not None:
                                 pass
                             else:
                                 lists = eachline.strip().split()                                
@@ -172,7 +172,7 @@ class McnpinpHandler(object):
                 if lines:
                     if section == McnpinpHandler.DATA_SECTION:
                         if eachline[0].isspace() is False:
-                            if re.match(eachline.split()[0], 'c', re.I) is not None:
+                            if re.fullmatch(eachline.split()[0], 'c', re.I) is not None:
                                 pass
                             else:
                                 lists = eachline.strip().split()                                
