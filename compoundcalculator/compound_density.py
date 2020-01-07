@@ -1,4 +1,5 @@
 from itertools import groupby
+import re
 
 class BaseClass():
     def __init__(self, label):
@@ -113,9 +114,13 @@ class Material(BaseClass):
         for compound, molar in self.compounddict.items():
             elementdict = compound.getElement()
             for element, num in elementdict.items():
-                if element in totelementdict.keys():
-                    totelementdict[element] += num * molar
-                else:
+                isnew_element = True
+                for elementintot in totelementdict.keys():
+                    if re.fullmatch(elementintot.getLabel(), element.getLabel(), re.I):
+                        totelementdict[elementintot] += num * molar
+                        isnew_element = False
+                        break
+                if isnew_element:
                     totelementdict[element] = num * molar
         
         totnuclidedict = {}
@@ -212,7 +217,7 @@ if __name__ == '__main__':
     lif = Compound('lif', lifdict, 2.358, 4.902e-4)
     # thf4 = Compound('ThF4', thf4dict, 6.490933)
     bef2 = Compound('BeF2', bef2dict, 1.972, 1.45e-5)
-    matdict = {nacl:90, pucl3:6, thcl4:4}
+    matdict = {nacl:10, pucl3:6, thcl4:4}
     # matdict = {nacl:55, ucl3:25, thcl4:20}
     # matdict = {lif:60, bef2:20, thf4:17.6, uf4:2.4}
     # 'label' 'matdict' 'temp'
