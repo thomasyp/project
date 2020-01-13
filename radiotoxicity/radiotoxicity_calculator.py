@@ -185,6 +185,7 @@ def mainFunc(filename, toxicitytype='Ac'):
 
     time = [1, 5]
     totHM = 0    
+    # read input-dose.inp
     with open(filename, 'r') as fid:
         listfromfile = fid.readlines()
         numoffile = int(listfromfile[1].strip())
@@ -194,15 +195,16 @@ def mainFunc(filename, toxicitytype='Ac'):
         prefixofinp = listfromfile[5].strip().split()[0]
         inpname = '.'.join([prefixofinp, 'txt'])
         print(inpname)
-        jj = 1
-        for ii in range(4, 23, 3):
-            time.append(1 * 10**jj)
-            time.append(2 * 10**jj)
-            time.append(5 * 10**jj)           
-            jj += 1
-        time = time[:-2]
-    with open(inpname, 'r') as fid1, open('sum_HM.dat', 'w') as fid2, open('com_nucl.inp', 'w') as fid3:
-        
+    # create time list
+    jj = 1
+    for ii in range(4, 23, 3):
+        time.append(1 * 10**jj)
+        time.append(2 * 10**jj)
+        time.append(5 * 10**jj)           
+        jj += 1
+    time = time[:-2]
+    # read mass of nuclide and calculate the total HM.
+    with open(inpname, 'r') as fid1, open('sum_HM.dat', 'w') as fid2:   
         for eachline in fid1:
             linelist = eachline.strip().split()
             if linelist:
@@ -212,7 +214,8 @@ def mainFunc(filename, toxicitytype='Ac'):
                     totHM += massofnuclide
         fid2.write('{:}\n'.format('总重金属质量(g)'))
         fid2.write('{:.7e}'.format(totHM))
-
+    
+    #create file 'com_nucl.inp' (nuclide tag, atomnumber, massnumber and mass per total hm in this file).
     with open(inpname, 'r') as fid1, open('com_nucl.inp', 'w') as fid3:
         fid3.write("nuclear  concent(g/MTHN)\n")
         for eachline in fid1:
@@ -223,6 +226,7 @@ def mainFunc(filename, toxicitytype='Ac'):
                 atomnumber = int(tagofnuclide / 10000)
                 massnumber = int(tagofnuclide / 10) - atomnumber*1000
                 fid3.write('{:^10d} {:^10d} {:^10d} {:^20.7e}\n'.format(tagofnuclide, atomnumber, massnumber, massofnuclide/totHM*1e6))
+    
     if toxicitytype == 'Ac':
         # for uranium
         basemassnumberofuranium = 231

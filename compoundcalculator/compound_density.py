@@ -43,8 +43,8 @@ class Element(BaseClass):
         tot = sum([massabundance for massabundance in self.nuclidedict.values()])
         actomic_abudance_dic = {}
         if abs(tot - 1) > 1e-6:
-            print('Warning! the nuclide {:} abundance does not add up to 1!'.format(
-                self.getLabel()))
+            print('Warning! the sum of nuclide {:} abundance is {:} does not add up to 1!'.format(
+                self.getLabel(), tot))
         totmolar = sum([massabundance/nuclide.getMass() for nuclide, massabundance 
         in self.nuclidedict.items()])
         for nuclide, massabundance in self.nuclidedict.items():
