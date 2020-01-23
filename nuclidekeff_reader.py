@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 mtr = McnpTallyReader()
-loopdic = {1:4, 2:5, 3:13}
+loopdic = {1:4, 2:5, 3:20}
 path = Path('D:\work\mcnpxwork\博士课题\msasd\氯盐堆\\r150\8501gOUT')
 basefilename = '8501go'
 

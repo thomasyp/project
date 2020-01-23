@@ -101,8 +101,9 @@ class McnpTallyReader(object):
             readTag[key] = False
             datadict[key] = []
 
-        with open(filename, 'r') as fileid:
+        with open(filename, 'rb') as fileid:
             for eachline in fileid:
+                eachline = eachline.decode('utf-8', 'ignore')
                 lists = eachline.strip().split()
                 if len(lists) > 0:
                     if lists[0] == 'there':
@@ -602,17 +603,61 @@ class McnpTallyReader(object):
                         results[str(nuclide)]['n,xn'] = float(line[6])
             return results
 
-    def getCR(self, outfile):
-        totratedic = self.readNeutronActivity(outfile)
-        totfission = totratedic['lossfission']
-        activitydic = self.readNeutronActivity(outfile, nuclides=['90232', '92234', '94240', '91233', '92238', '92233', '92235', '94239', '94241'])
-        
-        # CR=Rc(Th232 + U234 + U238 + Pu240 -Pa233) / Ra(U233 + U235 + Pu239 + Pu241)
-        CR = (activitydic['90232']['capture'] + activitydic['92234']['capture'] + activitydic['94240']['capture'] \
-            + activitydic['92238']['capture'] - activitydic['91233']['capture'])/(activitydic['92233']['capture'] + activitydic['92235']['capture'] \
-                + activitydic['94239']['capture'] + activitydic['94241']['capture'] + totfission)
-        print(CR)
+
+    def _readFmtally(self, filename, tallynum, reaction):
+        tag = False
+        tally = 0
+        keywords = ' '.join(['multiplier bin:   1.00000E+00', tallynum])
+        with open(filename, 'r') as fid:   
+            for eachline in fid:
+                linelist = eachline.strip().split()
+                if keywords in eachline and reaction == linelist[-1]:
+                    tag = True
+                if not linelist:
+                    tag = False
+                if tag and len(linelist) == 2:
+                    tally = float(linelist[0])
+                
+        return tally
+
+
+    def getCR(self, outfile, mode='kcode', tallydic=None, cell=None, matnum=None, volume=None):
+        if mode == 'kcode':
+            totratedic = self.readNeutronActivity(outfile)
+            totfission = totratedic['lossfission']
+            activitydic = self.readNeutronActivity(outfile, nuclides=['90232', '92234', '94240', '91233', 
+            '92238', '92233', '92235', '94239', '94241'])
+            
+            # CR=Rc(Th232 + U234 + U238 + Pu240 -Pa233) / Ra(U233 + U235 + Pu239 + Pu241)
+            CR = (activitydic['90232']['capture']+activitydic['92234']['capture'] + activitydic['94240']['capture']
+                  +activitydic['92238']['capture']-activitydic['91233']['capture'])/(activitydic['92233']['capture'] 
+                  +activitydic['92235']['capture']+activitydic['94239']['capture'] + activitydic['94241']['capture'] 
+                  +totfission)
+            print(activitydic)
+        elif mode == 'fixed':
+            nuclidelist = ['90232', '91233', '94239', '94240', '94241', '92233', '92234', '92235', '92238']
+            captureratedic = {}
+            fissratedic = {}
+            atomdensitydic = {}
+            if not (tallydic and cell and matnum and volume):
+                raise CustomError(
+            'Lack cell number, material number, fm tally dictionary and volume of cell!')
+            for nuclide in nuclidelist:
+                atomdensitydic[nuclide] = self.getNuclideDensity(outfile, cell, matnum, nuclide)
+            for tallynum, nuclide in tallydic.items():    
+                capturetally = self._readFmtally(outfile, tallynum, '102')
+                fisstally = self._readFmtally(outfile, tallynum, '-6')
+                captureratedic[nuclide] = volume * atomdensitydic[nuclide] * capturetally
+                fissratedic[nuclide] = volume * atomdensitydic[nuclide] * fisstally
+            CR = (captureratedic['90232']+captureratedic['92234']+captureratedic['92238']+\
+                captureratedic['94240']-captureratedic['91233']) / (captureratedic['92233']+\
+                captureratedic['92235']+captureratedic['94239']+captureratedic['94241']+\
+                fissratedic['92233']+fissratedic['92235']+fissratedic['94239']+\
+                fissratedic['94241'])
+        else:
+            raise CustomError('Only kcode and fixed mode are allowed!')
         return CR
+
 
     def getNeutronYield(self, outfile):
         '''
@@ -873,10 +918,11 @@ class McnpTallyReader(object):
             返回类型float, 核素密度
             
         '''
-             
+        matnum = str(matnum) 
+        cell = str(cell)    
         nuclidefractioninfo = self.readNuclideFraction(filename, mode)
         nuclidefractiondic = defaultdict(lambda: 0)
-        if ''.join([nuclide, ',']) in nuclidefractioninfo[matnum]:
+        if ''.join([nuclide, ',']) in nuclidefractioninfo[str(matnum)]:
             
             nuclidefractiondic[nuclide] = float(nuclidefractioninfo[matnum][nuclidefractioninfo[matnum].index(nuclide+',')+1])
         
@@ -947,19 +993,19 @@ class McnpTallyReader(object):
 if __name__ == '__main__':
     mtr = McnpTallyReader()
     # path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\扩大堆芯搜索\\微调\\120r60ko_40.00_6.70_53.30'
-    path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\r150\\850500OUT\\850500o-1-1'
+    # path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\中子学参数计算forCR\\test.log'
     # path = 'D:\\work\\mcnpwork\\lf1\\初步设计\\升版\\能量沉积\\dept.log'
-    # path = 'D:\\work\\mcnpwork\\lf1\\初步设计\\核测\\base.log'
-    # mtr.getCR(path)
+    path = 'D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\r150\\8501gcOUT\\8501gco-1-15'
+    test = mtr.readNuclideFraction(path, 'atom')
     # test = mtr.readNeutronActivity(path, '4', ['94239'])
-    # print(test)
-    nuclidelist = ['94238', '94239', '94240', '94241', '94242', '90232', '92235']
-    keff = 0
-    for nuclide in nuclidelist:
-        keffofnuclide = mtr.getNuclideKeff(path, '4', '1', nuclide)
-        keff = keff + keffofnuclide
-        print(nuclide, keffofnuclide)
-    print(keff)
+    print(test.keys())
+    # nuclidelist = ['94238', '94239', '94240', '94241', '94242', '90232', '92235']
+    # keff = 0
+    # for nuclide in nuclidelist:
+    #     keffofnuclide = mtr.getNuclideKeff(path, '4', '1', nuclide)
+    #     keff = keff + keffofnuclide
+    #     print(nuclide, keffofnuclide)
+    # print(keff)
 
     # volume = mtr.getTallyVolume(path, '4')
     # print(volume)

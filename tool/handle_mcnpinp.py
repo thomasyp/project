@@ -8,6 +8,7 @@ Created on Thu Nov 26 10:15:47 2018
 
 import os
 import re
+from tool.self_defined_exception import CustomError
 
 class McnpinpHandler(object):
     CELL_SECTION = 0
@@ -16,7 +17,18 @@ class McnpinpHandler(object):
 
     def __init__(self):
         pass
-    
+
+    def copyinp(self, inpname, newinpname):
+        try:
+            if inpname == newinpname:
+                raise CustomError('The copied file and the the target file are same!')
+        except TypeError as e:
+            print(e)
+            return -1
+        with open(inpname, 'r') as fread, open(newinpname, 'w') as fwrite:
+            for eachline in fread:
+                fwrite.write(eachline)
+
     def readContent(self, inpname, designator, section='cell'):
         """
             Function: read content from  mcnp input card.
@@ -45,29 +57,32 @@ class McnpinpHandler(object):
             # empty line case
             if eachline.strip() == '':
                 lists = line.strip().split()
-                if lists and lists[0] == str(designator) and numSeparator == numsp:
+                # if lists and lists[0] == str(designator) and numSeparator == numsp:
+                if lists and re.fullmatch(str(designator), lists[0], re.I) and numSeparator == numsp:
                     targetline = line
                     return targetline
                 else:
                     line = eachline
                 numSeparator += 1
             # mcnp card start line case
-            elif eachline[0] != ' ' and re.match(eachline.split()[0], 'c', re.I) is None:
+            elif eachline[0] != ' ' and re.fullmatch(eachline.split()[0], 'c', re.I) is None:
                 lists = line.strip().split()
-                if lists and lists[0] == str(designator) and numSeparator == numsp:
+                # if lists and lists[0] == str(designator) and numSeparator == numsp:
+                if lists and re.fullmatch(str(designator), lists[0], re.I) and numSeparator == numsp:
                     targetline = line
                     return targetline
                 else:
                     line = eachline
             # annotation line case
-            elif eachline[0] != ' ' and re.match(eachline.split()[0], 'c', re.I) is not None:
+            elif eachline[0] != ' ' and re.fullmatch(eachline.split()[0], 'c', re.I) is not None:
                 pass
             # mcnp card continuation line case
             else:
                 line = line + eachline
         # end of the file case
         lists = line.strip().split()
-        if lists and lists[0] == str(designator) and numSeparator == numsp:
+        # if lists and lists[0] == str(designator) and numSeparator == numsp:
+        if lists and re.fullmatch(str(designator), lists[0], re.I) and numSeparator == numsp:
             targetline = line
             return targetline    
         
@@ -93,7 +108,7 @@ class McnpinpHandler(object):
                 if lines:
                     if section == McnpinpHandler.CELL_SECTION:
                         if eachline[0].isspace() is False:
-                            if re.match(eachline.split()[0], 'c', re.I) is not None:
+                            if re.fullmatch(eachline.split()[0], 'c', re.I) is not None:
                                 pass
                             else:
                                 lists = eachline.strip().split()                                
@@ -125,7 +140,7 @@ class McnpinpHandler(object):
                 if lines:
                     if section == McnpinpHandler.SURFACE_SECTION:
                         if eachline[0].isspace() is False:
-                            if re.match(eachline.split()[0], 'c', re.I) is not None:
+                            if re.fullmatch(eachline.split()[0], 'c', re.I) is not None:
                                 pass
                             else:
                                 lists = eachline.strip().split()                                
@@ -157,7 +172,7 @@ class McnpinpHandler(object):
                 if lines:
                     if section == McnpinpHandler.DATA_SECTION:
                         if eachline[0].isspace() is False:
-                            if re.match(eachline.split()[0], 'c', re.I) is not None:
+                            if re.fullmatch(eachline.split()[0], 'c', re.I) is not None:
                                 pass
                             else:
                                 lists = eachline.strip().split()                                
@@ -198,9 +213,7 @@ class McnpinpHandler(object):
             line = ''
             numSeparator = 0
             for eachline in content:
-                # print(eachline)
-                if eachline.strip() != '' and eachline.split()[0] == 'c':
-                    continue
+                
                 if eachline.strip() == '':
 
                     lists = line.strip().split()
@@ -286,17 +299,14 @@ class McnpinpHandler(object):
 
 if __name__ == "__main__":
     mh = McnpinpHandler()
-    # line = "502       18 -2.1 (465:452:-454) -466 -452 454 2002 2004 2030 2032 2036 2038 2040 2042 2044 2046 \
-    #       2048 2050 2052 2054 2056 imp:n=4 502 18 -2.1\
-    #   (465:452:-454) -466 -452 454 2002 2004 2030 2032 2036 2038 2040 2042\
-    #   2044 2046 2048 2050 2052 2054 2056 imp:n=4 502 18 -2.1"
-    # mh.modifyinp('cor4.txt', '99', line)
+    line = "560       18 -2.1 (465:452:-454) -466 -452 454 2002 2004 2030 2032 imp:n=4"
+    mh.modifyinp('D:\\work\\mcnpwork\\lf1\\工程设计\\功率分布\\一维\\drop\\0000', '560', line)
     # line = mh.readContent('cor4.txt', '4')
     # print(line)
     # print(mh.readCellCards('na402'))
     # print(mh.readCellCards('na402'))
     # print(mh.readSurfaceCards('na402'))
-    print(mh.readDataCards('na402'))
+    # print(mh.readDataCards('na402'))
 
 
 

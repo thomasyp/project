@@ -10,6 +10,7 @@ import numpy as np
 from pathlib import Path, PurePath
 import tool.polt_CR
 
+
 def inital(inp, diff, surflist=None):
     mh = McnpinpHandler()
 
@@ -44,7 +45,6 @@ def deleteNonMcnpCard(inp, cardlist=None):
     os.rename(inp+'bp', inp)
     return 1
 
-
 def readVolume(filename):
     
     with open(filename, 'r') as fid:
@@ -53,7 +53,6 @@ def readVolume(filename):
     line = re.findall("                         \d\.\d{5}E[+-]\d{2}", ''.join(context))[0]
     volume = float(line)
     return volume
-
 
 def changeMcnpLine(inp, step, designator, section='cell'):
     mh = McnpinpHandler()
@@ -110,6 +109,9 @@ def changeMode(inp, mode):
 
 
 
+
+
+u233 = Isotope('U233', 92, 233)
 u235 = Isotope('U235', 92, 235.043923)
 u238 = Isotope('U238', 92, 238.050783)
 th232 = Isotope('Th232', 90, 232.03805)
@@ -146,13 +148,13 @@ nacldict = {na:1, cl:1}
 thcl4dict = {th:1, cl:4}
 mgcl2dict = {mg:1, cl:2}
 pucl3dict = {pu:1, cl:3}
-ucl3dic = {u:1, cl:3}
+ucl3dict = {u:1, cl:3}
 # lifdict = {li:1, f:1}
 nacl = Compound('NaCl', nacldict, 2.1393, 0.543e-3)
 thcl4 = Compound('ThCl4', thcl4dict, 4.823, 0.0014)
 
 pucl3 = Compound('PuCl3', pucl3dict, 4.809, 0)
-ucl3 = Compound('UCl3', pucl3dict, 6.3747, 1.5222e-3)
+ucl3 = Compound('UCl3', ucl3dict, 6.3747, 1.5222e-3)
 # thf4 = Compound('ThF4', thf4dict, 6.490933)
 # bef2 = Compound('BeF2', bef2dict, 1.9602115)
 matdict = {}
@@ -167,8 +169,9 @@ inp = args.inp
 node = args.node
 ppn = args.ppn
 # inp = 'co25'
-cardlist=['naclsets', 'puclsets', 'coresizesets', 'reflectorsets']
+cardlist=['naclsets', 'uclsets', 'coresizesets', 'reflectorsets']
 
+volume = 2.12058E+07
 tallydic = {'1004':'94240', '1003':'94239', '1005':'94241', '1007':'90232', 
             '1016':'91233','1018':'92233', '1020':'92235', '1019':'92234', 
             '1023':'92238'}
@@ -197,19 +200,19 @@ else:
     startmolnacl = 0
     stepmolnacl = 1
     endmolnacl = 1
-if 'puclsets' in para.keys(): 
-    startmolpucl = para['puclsets'][0]
-    endmolpucl = para['puclsets'][1]
-    stepmolpucl = para['puclsets'][2]
+if 'uclsets' in para.keys(): 
+    startmolucl = para['uclsets'][0]
+    endmolucl = para['uclsets'][1]
+    stepmolucl = para['uclsets'][2]
 else:
-    startmolpucl = 0
-    stepmolpucl = 1
-    endmolpucl = 1
+    startmolucl = 0
+    stepmolucl = 1
+    endmolucl = 1
 
 if stepmolnacl > 0:
    stepmolnacl = -1 * stepmolnacl
-if stepmolpucl > 0:
-   stepmolpucl = -1 * stepmolpucl
+if stepmolucl > 0:
+   stepmolucl = -1 * stepmolucl
 
 if 'coresizesets' in para.keys():
     endCoreSize = para['coresizesets'][0]
@@ -230,8 +233,8 @@ else:
 
 print('startmolnacl:', startmolnacl)
 print('stepmolnacl:', stepmolnacl)
-print('startmolpucl:', startmolpucl)
-print('stepmolpucl:', stepmolpucl)
+print('startmolucl:', startmolucl)
+print('stepmolucl:', stepmolucl)
 print('endreflectorThickness:', endreflectorThickness)
 print('endCoreSize:', endCoreSize)
 
@@ -243,11 +246,11 @@ resultfile = inp + 'results.out'
 seachoutfile = inp + 'search.out'
 with open(resultfile, 'w') as fid, open(seachoutfile, 'w') as fid2:
    fid.write("{:^10} {:^10} {:^10} {:^10} {:^10} {:^10} {:^20} {:^20} {:^20} {:^20}\n"\
-       .format('Core size', 'Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff',\
+       .format('Core size', 'Thickness', 'Nacl', 'uCl3', 'ThCl4', 'Keff',\
                               'CR of kcode', 'Escape of kcode', 'CR of fixed',\
                               'Escape of fixed'))
    fid2.write("{:^10} {:^10} {:^10} {:^10} {:^10} {:^10} {:^20} {:^20} {:^20} {:^20}\n"\
-       .format('Core size', 'Thickness', 'Nacl', 'PuCl3', 'ThCl4', 'Keff',\
+       .format('Core size', 'Thickness', 'Nacl', 'uCl3', 'ThCl4', 'Keff',\
                                'CR of kcode', 'Escape of kcode', 'CR of fixed',\
                                'Escape of fixed'))
 
@@ -309,9 +312,9 @@ for mm in range(0, endCoreSize, coreSizeStep):
         # loop for nacl
         for ii in np.arange(startmolnacl, endmolnacl, stepmolnacl):
             matdict[nacl] = ii
-            # loop for pucl
-            for jj in np.arange(100-ii, endmolpucl, stepmolpucl):
-                if jj > startmolpucl:
+            # loop for ucl
+            for jj in np.arange(100-ii, endmolucl, stepmolucl):
+                if jj > startmolucl:
                     continue
                 ## set initials
                 results['kCR'] = 0  # CR of kcode mode
@@ -319,7 +322,7 @@ for mm in range(0, endCoreSize, coreSizeStep):
                 results['kescape'] = 0 # escape of kcode mode
                 results['fescape'] = 0 # escape of fixed mode
 
-                matdict[pucl3] = jj
+                matdict[ucl3] = jj
                 matdict[thcl4] = 100 - ii - jj
                 mat = Material('mat1', matdict, 900)
                 # print(uf4.getActomicMass())
@@ -348,7 +351,7 @@ for mm in range(0, endCoreSize, coreSizeStep):
                     if os.path.isfile(inp+'o'):
                         oldfilename = inp+'o'
                         newfilename = inp+'ko_'+str(mm)+'_'+str(kk)+'_'+'{:.4f}'.format(matdict[nacl])\
-                            +'_'+'{:.4f}'.format(matdict[pucl3])+'_'+'{:.4f}'.format(matdict[thcl4])
+                            +'_'+'{:.4f}'.format(matdict[ucl3])+'_'+'{:.4f}'.format(matdict[thcl4])
                         mh.deleteFiles(newfilename)
                         os.rename(oldfilename, newfilename)
                     mh.cleanup(inp)
@@ -361,7 +364,6 @@ for mm in range(0, endCoreSize, coreSizeStep):
                     os.system('mpirun -r ssh -np '+ str(int(node*ppn)) +' /home/daiye/bin/mcnp5.mpi n=' + inp)
                     if os.path.isfile(inp+'o'):
                         print('MCNP5 run finished!')
-                        volume = readVolume(inp+'o'))
                         results['fCR'] = mtr.getCR(PurePath.joinpath(Path(os.getcwd()), inp+'o'),
                                                    mode='fixed', tallydic=tallydic, cell=4, 
                                                    matnum=1, volume=volume)
@@ -369,20 +371,20 @@ for mm in range(0, endCoreSize, coreSizeStep):
                         results['fescape'] = f_totrate['escape']/(f_totrate['escape']+f_totrate['lossfission']+f_totrate['capture'])
                     if os.path.isfile(inp+'o'):
                         oldfilename = inp+'o'
-                        newfilename = inp+'fo_'+str(mm)+'_'+str(kk)+'_'+'{:.4f}'.format(matdict[nacl])+'_'+'{:.4f}'.format(matdict[pucl3])+'_'+'{:.4f}'.format(matdict[thcl4])
+                        newfilename = inp+'fo_'+str(mm)+'_'+str(kk)+'_'+'{:.4f}'.format(matdict[nacl])+'_'+'{:.4f}'.format(matdict[ucl3])+'_'+'{:.4f}'.format(matdict[thcl4])
                         mh.deleteFiles(newfilename)
                         os.rename(oldfilename, newfilename)
                     mh.cleanup(inp)
 
                 results['nacl'] = matdict[nacl] # molar of nacl
-                results['pucl3'] = matdict[pucl3]
+                results['ucl3'] = matdict[ucl3]
                 results['thcl4'] = matdict[thcl4]
                 results['thickness'] = kk
                 results['coresize'] = mm
 
                 
                 with open(resultfile, 'a') as fid, open(seachoutfile, 'a') as fid2:
-                    fid2.write("{coresize:^10} {thickness:^10} {nacl:^10.4f} {pucl3:^10.4f} {thcl4:^10.4f} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
+                    fid2.write("{coresize:^10} {thickness:^10} {nacl:^10.4f} {ucl3:^10.4f} {thcl4:^10.4f} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
                     if float(results['keff']) > 0.97 and float(results['keff'])<0.99:
-                        fid.write("{coresize:^10} {thickness:^10} {nacl:^10.4f} {pucl3:^10.4f} {thcl4:^10.4f} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
+                        fid.write("{coresize:^10} {thickness:^10} {nacl:^10.4f} {ucl3:^10.4f} {thcl4:^10.4f} {keff:^10} {kCR:^20.4f} {kescape:^20.4f} {fCR:^20.4f} {fescape:^20.4f}\n".format(**results))
 
