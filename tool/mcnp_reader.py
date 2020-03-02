@@ -212,7 +212,7 @@ class McnpTallyReader(object):
             meshFid = open(meshtalFile, 'r')
         except IOError as e:
             print("Error 11004: meshtal file open error: ", e)
-            return -1
+            raise IOError
         else:
             print("Comment: Reading meshtal file...")
             for eachline in meshFid:
