@@ -658,6 +658,28 @@ class McnpTallyReader(object):
             raise CustomError('Only kcode and fixed mode are allowed!')
         return CR
 
+    def getRR(self, outfile, tallydic=None, cell=None, matnum=None, volume=None):
+        nuclidelist = ['90232', '91233', '94239', '94240', '94241', '92233', '92234', '92235', '92238']
+        captureratedic = {}
+        fissratedic = {}
+        atomdensitydic = {}
+        if not (tallydic and cell and matnum and volume):
+            raise CustomError(
+        'Lack cell number, material number, fm tally dictionary and volume of cell!')
+        for nuclide in nuclidelist:
+            atomdensitydic[nuclide] = self.getNuclideDensity(outfile, cell, matnum, nuclide)
+        for tallynum, nuclide in tallydic.items():    
+            capturetally = self._readFmtally(outfile, tallynum, '102')
+            fisstally = self._readFmtally(outfile, tallynum, '-6')
+            captureratedic[nuclide] = volume * atomdensitydic[nuclide] * capturetally
+            fissratedic[nuclide] = volume * atomdensitydic[nuclide] * fisstally
+        # RR=Rc(Th232-Pa233)/Ra(U233)
+        if (captureratedic['92233'] + fissratedic['92233']) == 0:
+            return 0
+        RR = (captureratedic['90232']-captureratedic['91233']) / (captureratedic['92233']\
+            +fissratedic['92233'])
+        return RR
+
 
     def getNeutronYield(self, outfile):
         '''
