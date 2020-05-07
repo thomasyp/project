@@ -16,37 +16,29 @@ class McnpTallyReader(object):
     def __init__(self):
         self.keyName = []
 
-    def readSingleTally(self, filename, **kw):
+    def readTally(self, outfile, tallynum):
         """
             Function: read results(spectrum format data) from mcnp output file
             Parameters: 1.mcnp output file
                         2.关键字参数
-            Return: tally results.
+            Return: tally results (data type: list).
         """
-        readTag = {}
-        datadict = {}
-        for key in kw.keys():
-            self.keyName.append(key)
-            readTag[key] = False
-            datadict[key] = []
-
-        with open(filename, 'r') as fileid:
-            for eachline in fileid:
-                lists = eachline.strip().split()
-                if len(lists) > 0:
-                    if lists[0] == '1tally' and lists[2] == 'nps':
-                        for key, tallyNum in kw.items():
-                            if lists[1] == str(tallyNum):
-                                readTag[key] = True
-                            else:
-                                readTag[key] = False
-                    if len(lists) == 2:
-                        for key, tallyNum in kw.items():
-                            if readTag[key] is True:
-                                if re.match('\d\.\d{5}E[+-]\d{2}', lists[0]) is not None:
-                                    datadict[key] = lists
-
-        return datadict
+        results = []
+        readtag = False
+        
+        with open(outfile, 'r') as fid:
+            for line in fid:
+                linelist = line.strip().split()
+                if linelist and linelist[0] == '1tally' and linelist[2] == 'nps':
+                    if linelist[1] == str(tallynum):
+                        readtag = True
+                if len(linelist) > 1 and readtag:
+                    matched_obj = re.search(r'\d\.\d{5}E[+-]\d{2}', line)
+                    if matched_obj:
+                        results.append(matched_obj[0])
+                    if matched_obj is None and results:
+                        readtag = False
+        return results
 
     def readSpectrum2dat(self, filename, **kw):
         """
