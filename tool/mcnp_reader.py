@@ -26,8 +26,9 @@ class McnpTallyReader(object):
         results = []
         readtag = False
         
-        with open(outfile, 'r') as fid:
+        with open(outfile, 'rb') as fid: # read as binary file
             for line in fid:
+                line = line.decode('utf-8', 'ignore') # decode as utf-8
                 linelist = line.strip().split()
                 if linelist and linelist[0] == '1tally' and linelist[2] == 'nps':
                     if linelist[1] == str(tallynum):
