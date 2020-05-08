@@ -133,8 +133,8 @@ class Material(BaseClass):
         lines = ''
         for nuclide, num in totnuclidedict.items():
             if num != 0:
-                line = "{:}{:}{:<12}  {:<12.6e}\n".format(nuclide.getAtomicNumber(),
-                    self.mcnpNuclideNotation(nuclide.getLabel()), self.tem2suffix(), num/normaconstant)
+                line = "{:}{:}.{:<12}  {:<12.6e}\n".format(nuclide.getAtomicNumber(),
+                    self.mcnpNuclideNotation(nuclide.getLabel()), self.chooselib(self.temp), num/normaconstant)
                 lines += line 
             # print("{:}{:<10}  {:<12.6e}".format(Nuclide.getAtomicNumber(), Nuclide.getLabel(), num/normaConstant))
         return lines
@@ -150,13 +150,34 @@ class Material(BaseClass):
         else:
             return -1
 
-    def tem2suffix(self):
-        return '.90c'
+    def chooselib(self, tem):
+        mcnplib = {300:'30c',400:'40c',500:'50c',600:'60c',700:'70c',750:'75c'\
+            ,800:'80c',820:'82c',840:'84c',860:'86c',870:'87c',880:'88c',900:'90c'\
+            ,920:'92c',940:'94c',960:'96c',980:'98c',1000:'10c',1050:'05c'\
+            ,1100:'11c',1200:'12c',1300:'13c',1400:'14c',1500:'15c',1600:'16c'\
+            ,1700:'17c',1800:'18c',1900:'19c',2000:'20c',2100:'21c',2200:'22c'} 
+        liblist = [300,400,500,600,700,750,800,820,840,860,870,880,900,920,940,960,980,1000,1050\
+            ,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200]
+        ii = 0
+        if tem > 2200 or tem < 300:
+            raise Exception("temperature is out of range")       
+        else:
+            for ii in range(len(liblist)):
+                delttem = tem - liblist[ii]
+                if delttem > 0:
+                    ii = ii + 1
+                else:
+                    break
+            if abs(tem - liblist[ii])>abs(tem - liblist[ii-1]):         
+                return mcnplib[liblist[ii-1]]
+            else:
+                return mcnplib[liblist[ii]]
 
  
 
 
 if __name__ == '__main__':
+    
     u235 = Nuclide('U235', 92, 235.043923)
     u233 = Nuclide('U233', 92, 233.043923)
     u238 = Nuclide('U238', 92, 238.050783)

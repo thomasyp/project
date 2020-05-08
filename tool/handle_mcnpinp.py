@@ -54,8 +54,12 @@ class McnpinpHandler(object):
         targetline = None
         numSeparator = 0
         for eachline in content:
+            testline = eachline
+            if '*' in eachline:
+                testline = testline.replace('*', '\*')
+
             # empty line case
-            if eachline.strip() == '':
+            if testline.strip() == '':
                 lists = line.strip().split()
                 # if lists and lists[0] == str(designator) and numSeparator == numsp:
                 if lists and re.fullmatch(str(designator), lists[0], re.I) and numSeparator == numsp:
@@ -65,7 +69,7 @@ class McnpinpHandler(object):
                     line = eachline
                 numSeparator += 1
             # mcnp card start line case
-            elif eachline[0] != ' ' and re.fullmatch(eachline.split()[0], 'c', re.I) is None:
+            elif testline[0] != ' ' and re.fullmatch(testline.split()[0], 'c', re.I) is None:
                 lists = line.strip().split()
                 # if lists and lists[0] == str(designator) and numSeparator == numsp:
                 if lists and re.fullmatch(str(designator), lists[0], re.I) and numSeparator == numsp:
@@ -74,7 +78,7 @@ class McnpinpHandler(object):
                 else:
                     line = eachline
             # annotation line case
-            elif eachline[0] != ' ' and re.fullmatch(eachline.split()[0], 'c', re.I) is not None:
+            elif testline[0] != ' ' and re.fullmatch(testline.split()[0], 'c', re.I) is not None:
                 pass
             # mcnp card continuation line case
             else:

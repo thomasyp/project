@@ -16,37 +16,30 @@ class McnpTallyReader(object):
     def __init__(self):
         self.keyName = []
 
-    def readSingleTally(self, filename, **kw):
+    def readTally(self, outfile, tallynum):
         """
             Function: read results(spectrum format data) from mcnp output file
             Parameters: 1.mcnp output file
                         2.关键字参数
-            Return: tally results.
+            Return: tally results (data type: list).
         """
-        readTag = {}
-        datadict = {}
-        for key in kw.keys():
-            self.keyName.append(key)
-            readTag[key] = False
-            datadict[key] = []
-
-        with open(filename, 'r') as fileid:
-            for eachline in fileid:
-                lists = eachline.strip().split()
-                if len(lists) > 0:
-                    if lists[0] == '1tally' and lists[2] == 'nps':
-                        for key, tallyNum in kw.items():
-                            if lists[1] == str(tallyNum):
-                                readTag[key] = True
-                            else:
-                                readTag[key] = False
-                    if len(lists) == 2:
-                        for key, tallyNum in kw.items():
-                            if readTag[key] is True:
-                                if re.match('\d\.\d{5}E[+-]\d{2}', lists[0]) is not None:
-                                    datadict[key] = lists
-
-        return datadict
+        results = []
+        readtag = False
+        
+        with open(outfile, 'rb') as fid: # read as binary file
+            for line in fid:
+                line = line.decode('utf-8', 'ignore') # decode as utf-8
+                linelist = line.strip().split()
+                if linelist and linelist[0] == '1tally' and linelist[2] == 'nps':
+                    if linelist[1] == str(tallynum):
+                        readtag = True
+                if len(linelist) > 1 and readtag:
+                    matched_obj = re.search(r'\d\.\d{5}E[+-]\d{2}', line)
+                    if matched_obj:
+                        results.append(matched_obj[0])
+                    if matched_obj is None and results:
+                        readtag = False
+        return results
 
     def readSpectrum2dat(self, filename, **kw):
         """
@@ -212,7 +205,7 @@ class McnpTallyReader(object):
             meshFid = open(meshtalFile, 'r')
         except IOError as e:
             print("Error 11004: meshtal file open error: ", e)
-            return -1
+            raise IOError
         else:
             print("Comment: Reading meshtal file...")
             for eachline in meshFid:
@@ -657,6 +650,28 @@ class McnpTallyReader(object):
         else:
             raise CustomError('Only kcode and fixed mode are allowed!')
         return CR
+
+    def getRR(self, outfile, tallydic=None, cell=None, matnum=None, volume=None):
+        nuclidelist = ['90232', '91233', '94239', '94240', '94241', '92233', '92234', '92235', '92238']
+        captureratedic = {}
+        fissratedic = {}
+        atomdensitydic = {}
+        if not (tallydic and cell and matnum and volume):
+            raise CustomError(
+        'Lack cell number, material number, fm tally dictionary and volume of cell!')
+        for nuclide in nuclidelist:
+            atomdensitydic[nuclide] = self.getNuclideDensity(outfile, cell, matnum, nuclide)
+        for tallynum, nuclide in tallydic.items():    
+            capturetally = self._readFmtally(outfile, tallynum, '102')
+            fisstally = self._readFmtally(outfile, tallynum, '-6')
+            captureratedic[nuclide] = volume * atomdensitydic[nuclide] * capturetally
+            fissratedic[nuclide] = volume * atomdensitydic[nuclide] * fisstally
+        # RR=Rc(Th232-Pa233)/Ra(U233)
+        if (captureratedic['92233'] + fissratedic['92233']) == 0:
+            return 0
+        RR = (captureratedic['90232']-captureratedic['91233']) / (captureratedic['92233']\
+            +fissratedic['92233'])
+        return RR
 
 
     def getNeutronYield(self, outfile):

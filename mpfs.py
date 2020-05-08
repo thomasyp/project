@@ -24,6 +24,14 @@ from powerdistribution import computePowerDesityDistribution
 import argparse
 import re
 
+def getMeshFilename(outputfile):
+    with open(outputfile, 'r') as fid:
+        for line in fid:
+            if 'Mesh tallies written to file' in line:
+                mesh_filename = line.strip().split()[-1]
+                return mesh_filename
+    return None
+
 def readKeff(inp):
     """
         Function: Read keff,dev and average Num of neutron per Fissionor from mcnp output file.
@@ -42,7 +50,7 @@ def readKeff(inp):
                 averageNumNperFission = float(line.strip().split()[-2])
     return kef,dev,averageNumNperFission
 
-def maxPowerPeakFactorSearch(inp, node, ppn, trforrod, mode, rodstep=10):
+def maxPowerPeakFactorSearch(mcnpinp, node, ppn, trforrod, mode, rodstep=10):
     """
         Function: under different rod position, compute the power distribution, power peak factor and find the 
         maximum power peak factor, finally write all results to a filename of inp+'results.out'.
@@ -63,7 +71,7 @@ def maxPowerPeakFactorSearch(inp, node, ppn, trforrod, mode, rodstep=10):
     mh = McnpinpHandler()
     # read initial rod position of burnup mcnp input
     for key, value in trforrod.items():
-        rodmessage = mh.readContent(mcnpinp, key)
+        rodmessage = mh.readContent(mcnpinp, key, 'data')
         lists = rodmessage.strip().split()
         rodxcoordinate = float(lists[1])
         rodycoordinate = float(lists[2])
@@ -94,7 +102,7 @@ def maxPowerPeakFactorSearch(inp, node, ppn, trforrod, mode, rodstep=10):
                 instertposition = limit
             cr[rod].setInsertPosition(instertposition)
             ### modify mcnp inp
-            mh.modifyinp(mcnpinp, cr[rod].getTrCardNo(), cr[rod].ouputforMcnpinp())
+            mh.modifyinp(mcnpinp, cr[rod].getTrCardNo(), cr[rod].ouputforMcnpinp(), 'data')
             ii = ii + 1
             ### run mcnp
             print('  mpirun -r ssh -np '+str(int(node*ppn))+' /home/daiye/bin/mcnp5.mpi n='+mcnpinp)
@@ -109,19 +117,22 @@ def maxPowerPeakFactorSearch(inp, node, ppn, trforrod, mode, rodstep=10):
             
             keff = readKeff(mcnpinp+'o')
             meshfilename = mcnpinp + '_mesh_' + rod + '_' + str(instertposition)
-            if os.path.isfile('meshtal'):
+            original_meshfilename = getMeshFilename(mcnpinp+'o')
+            if os.path.isfile(original_meshfilename):
                 mh.deleteFiles(meshfilename)
-                os.rename('meshtal', meshfilename)
+                os.rename(original_meshfilename, meshfilename)
                 print("Rename meshtal to {:}\n".format(meshfilename))
 				
             resultsfilename = mcnpinp + rod + '_' + str(instertposition) + '.csv'
             uncertainty = 1.1 * 1.1
-            radialPowerPeakFactor, axialPowerPeakFactor, totPowerPeakFactor = computePowerDesityDistribution(meshfilename, resultsfilename, uncertainty)
-            powerfactorresults[rod].append((instertposition, keff[0], radialPowerPeakFactor, axialPowerPeakFactor, totPowerPeakFactor))    
+            radialPowerPeakFactor, axialPowerPeakFactor, totPowerPeakFactor = computePowerDesityDistribution(
+                meshfilename, resultsfilename, uncertainty)
+            powerfactorresults[rod].append((instertposition, keff[0], radialPowerPeakFactor, 
+            axialPowerPeakFactor, totPowerPeakFactor))    
             mh.cleanup(mcnpinp)
         ## set rod insertposition to inital
         cr[rod].setInsertPosition(initinsertposition)
-        mh.modifyinp(mcnpinp, cr[rod].getTrCardNo(), cr[rod].ouputforMcnpinp())
+        mh.modifyinp(mcnpinp, cr[rod].getTrCardNo(), cr[rod].ouputforMcnpinp(), 'data')
     
 
     maxradialPowerPeakFactor = 0
@@ -172,6 +183,7 @@ inp = args.inp
 node = args.node
 ppn = args.ppn
 mode = args.mode
+
 
 # set rod move step
 rodstep = 10
