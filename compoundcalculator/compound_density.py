@@ -238,11 +238,11 @@ if __name__ == '__main__':
     lif = Compound('lif', lifdict, 2.358, 4.902e-4)
     # thf4 = Compound('ThF4', thf4dict, 6.490933)
     bef2 = Compound('BeF2', bef2dict, 1.972, 1.45e-5)
-    matdict = {nacl:10, pucl3:6, thcl4:4}
+    # matdict = {nacl:10, pucl3:6, thcl4:4}
     # matdict = {nacl:55, ucl3:25, thcl4:20}
-    # matdict = {lif:60, bef2:20, thf4:17.6, uf4:2.4}
+    matdict = {lif:60, bef2:20, thf4:17.6, uf4:2.4}
     # 'label' 'matdict' 'temp'
-    mat = Material('mat1', matdict, 900)
+    mat = Material('mat1', matdict, 913.15)
     # print(uf4.getActomicMass())
     # print(thf4.getActomicMass())
     print(mat.getDensity())
