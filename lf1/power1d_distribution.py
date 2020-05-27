@@ -10,7 +10,7 @@ from tool.mcnp_reader import McnpTallyReader
 import numpy as np
 import csv
 
-def computePowerDesityDistribution(meshfilename, csvfilename, uncertainty):
+def computePowerDesityDistribution(meshfilename, csvfilename, uncertainty=1.21):
     """
     Fuction name: 
             computePowerDesityDistribution           
