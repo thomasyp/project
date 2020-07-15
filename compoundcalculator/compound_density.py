@@ -112,16 +112,16 @@ class Material(BaseClass):
         return mass / volum
 
     def toMcnpCard(self):
-        nuclide_compostion_in_material_dict = self.getNuclideCompostionInMaterial()
+        nuclide_compostion_in_material_dict = self.getNuclideFactionsInMaterial()
         return self.nuclideCompostionConvert2McnpFormat(nuclide_compostion_in_material_dict)   
     
     def nuclideCompostionConvert2McnpFormat(self, nuclide_compostion_in_material_dict):
-        normalize_constant = sum(nuclide_compostion_in_material_dict.values())
+        normalize_constant = abs(sum(nuclide_compostion_in_material_dict.values()))
         lines = ''
-        for nuclide, num in nuclide_compostion_in_material_dict.items():
-            if num != 0:
+        for nuclide, fraction in nuclide_compostion_in_material_dict.items():
+            if fraction != 0:
                 line = "{:}{:}.{:<12}  {:<12.6e}\n".format(nuclide.getAtomicNumber(),
-                    self.mcnpNuclideNotation(nuclide.getLabel()), self.chooselib(self.temp), num/normalize_constant)
+                    self.mcnpNuclideNotation(nuclide.getLabel()), self.chooselib(self.temp), fraction/normalize_constant)
                 lines += line 
 
         return lines 
@@ -129,25 +129,53 @@ class Material(BaseClass):
     def getElementCompostionInMaterial(self):
         element_compostion_in_material_dict = {}
         for compound, compound_ratio in self.compounddict.items():
-            element_in_compound_dict = compound.getElement()
-            for element, element_ratio in element_in_compound_dict.items():
-                is_new_element = True # is or is't new element in element_in_compound_dict
-                if element.getLabel() in [element.getLabel() for element in
-                 element_compostion_in_material_dict.keys()]:
-                    is_new_element = False
-                    element_compostion_in_material_dict[element] += element_ratio*compound_ratio
-                if is_new_element:
-                    element_compostion_in_material_dict[element] = element_ratio*compound_ratio
+            try:
+                element_in_compound_dict = compound.getElement()
+            except AttributeError:
+                # for case of a material composed of elements only.
+                for element, element_ratio in self.compounddict.items():
+                    # in this case mass fraction are used which is negative.
+                    element_compostion_in_material_dict[element] = element_ratio*-1
+            else:
+                # for case of a material composed of compounds.
+                for element, element_ratio in element_in_compound_dict.items():
+                    is_new_element = True # is or is't new element in element_in_compound_dict
+                    if element.getLabel() in [element.getLabel() for element in
+                    element_compostion_in_material_dict.keys()]:
+                        is_new_element = False
+                        element_compostion_in_material_dict[element] += element_ratio*compound_ratio
+                    if is_new_element:
+                        element_compostion_in_material_dict[element] = element_ratio*compound_ratio
         return element_compostion_in_material_dict
-
-    def getNuclideCompostionInMaterial(self):
+        
+    def getNuclideMassFactionsInMaterial(self):
         element_compostion_in_material_dict = self.getElementCompostionInMaterial()
         nuclide_compostion_in_material_dict = {}
         for element, ratio in element_compostion_in_material_dict.items():
-            nuclide_dict = element.getNuclide()        
-            for nuclide, abundance in nuclide_dict.items():
-                nuclide_compostion_in_material_dict[nuclide] = ratio*abundance
+            nuclide_dict = element.getNuclide()  
+            for nuclide in nuclide_dict.keys():
+                nuclide_compostion_in_material_dict[nuclide] = ratio*nuclide_dict[nuclide]
         return nuclide_compostion_in_material_dict
+    
+    def getNuclideActiomicFactionsInMaterial(self):
+        element_compostion_in_material_dict = self.getElementCompostionInMaterial()
+        nuclide_compostion_in_material_dict = {}
+        for element, ratio in element_compostion_in_material_dict.items():
+            nuclide_dict = element.getNuclide()  
+            actomic_abundance_dict = element.getActomicAbundance()     
+            for nuclide in nuclide_dict.keys():
+                print(ratio, actomic_abundance_dict[nuclide])
+                nuclide_compostion_in_material_dict[nuclide] = ratio*actomic_abundance_dict[nuclide]
+        return nuclide_compostion_in_material_dict
+    
+    def getNuclideFactionsInMaterial(self):
+        compound_or_element = self.compounddict.keys()
+        try:
+            compound_or_element.getElement() 
+        except AttributeError:
+            return self.getNuclideMassFactionsInMaterial()
+        else:
+            return self.getNuclideActiomicFactionsInMaterial()
                     
     def mcnpNuclideNotation(self, nuclidelabel):
         lists = [''.join(list(g)) for k, g in groupby(nuclidelabel, key=lambda x: x.isdigit())]
@@ -206,7 +234,7 @@ if __name__ == '__main__':
     mg25= Nuclide('mg25', 12, 24.985837)
     mg26= Nuclide('mg26', 12, 25.982593)
     na23 = Nuclide('na23', 11, 22.989770)
-    udict = {u235:19.95, u238:80.05}
+    udict = {u235:19.75, u238:80.25}
     # udict = {u233:1}
     lidict = {li6:0.0005, li7:0.9995}
     fdict = {f19:1}
@@ -250,9 +278,9 @@ if __name__ == '__main__':
     bef2 = Compound('BeF2', bef2dict, 1.972, 1.45e-5)
     # matdict = {nacl:10, pucl3:6, thcl4:4}
     # matdict = {nacl:55, ucl3:25, thcl4:20}
-    matdict = {lif:0.60, bef2:0.20, thf4:0.176, uf4:0.024}
+    matdict = {lif:0.6529, bef2:0.2873, thf4:0, uf4:0.0598}
     # 'label' 'matdict' 'temp'
-    mat = Material('mat1', matdict, 913.15)
+    mat = Material('mat1', matdict, 973.15)
     # print(uf4.getActomicMass())
     # print(thf4.getActomicMass())
     print(mat.getDensity())
