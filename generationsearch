@@ -1,0 +1,8 @@
+echo '#!/bin/bash'>PRB.sh
+echo '#PBS -l nodes='$2':ppn='$3>>PRB.sh
+echo '#PBS -N ' $1>>PRB.sh
+echo '#PBS -l software=Mcnp'>>PRB.sh
+echo . .bashrc>>PRB.sh
+echo 'cd $PBS_O_WORKDIR'>>PRB.sh
+echo 'search_generation.py -n ' $2 ' -p ' $3 '-i' $1 '-s' $4  ' > '$1.log>>PRB.sh
+qsub PRB.sh

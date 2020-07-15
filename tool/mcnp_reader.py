@@ -25,22 +25,26 @@ class McnpTallyReader(object):
         """
         results = []
         readtag = False
+        matched_obj = None
         
         with open(outfile, 'rb') as fid: # read as binary file
             for line in fid:
-                line = line.decode('utf-8', 'ignore') # decode as utf-8
+                line = line.decode('utf-8', 'ignore') # decode as utfuuu-8
                 linelist = line.strip().split()
                 if linelist and linelist[0] == '1tally' and linelist[2] == 'nps':
                     if linelist[1] == str(tallynum):
                         readtag = True
-                if len(linelist) > 1 and readtag:
-                    matched_obj = re.search(r'\d\.\d{5}E[+-]\d{2}', line)
+                        results = []
+                    else:
+                        readtag = False
+                if len(linelist) > 1 and len(linelist) < 4 and readtag:
+                    if re.fullmatch(r'\d\.\d{4}', linelist[-1]):
+                        matched_obj = re.search(r'\d\.\d{5}E[+-]\d{2}', line)
                     if matched_obj:
                         results.append(matched_obj[0])
-                    if matched_obj is None and results:
-                        readtag = False
+                        matched_obj = None
         return results
-
+        
     def readSpectrum2dat(self, filename, **kw):
         """
             Function: read results(spectrum format data) from mcnp output file and write the data to

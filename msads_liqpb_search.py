@@ -1,6 +1,6 @@
 #!/home/yangpu/bin/anaconda3/bin/python
 # -*- coding: utf-8 -*-
-from compoundcalculator.compound_density import Isotope, Nuclide, Compound, Material
+from compoundcalculator.compound_density import Nuclide, Element, Compound, Material
 from tool.handle_mcnpinp import McnpinpHandler
 from tool.mcnp_reader import McnpTallyReader
 import argparse
@@ -110,23 +110,23 @@ def changeMode(inp, mode):
 
 
 
-u235 = Isotope('U235', 92, 235.043923)
-u238 = Isotope('U238', 92, 238.050783)
-th232 = Isotope('Th232', 90, 232.03805)
-pu238 = Isotope('Pu238', 94, 238.0)
-pu239 = Isotope('Pu239', 94, 239.0)
-pu240 = Isotope('Pu240', 94, 240.0)
-pu241 = Isotope('Pu241', 94, 241.0)
-pu242 = Isotope('Pu242', 94, 242.0)
-f19 = Isotope('F19', 9, 18.998403)
-be9 = Isotope('Be9', 4, 9.012182)
-li6 = Isotope('li6', 3, 9.012182)
-li7 = Isotope('li7', 3, 9.012182)
-cl37 = Isotope('cl37', 17, 36.965903)
-mg24= Isotope('mg24', 12, 23.985042)
-mg25= Isotope('mg25', 12, 24.985837)
-mg26= Isotope('mg26', 12, 25.982593)
-na23 = Isotope('na23', 11, 22.989770)
+u235 = Nuclide('U235', 92, 235.043923)
+u238 = Nuclide('U238', 92, 238.050783)
+th232 = Nuclide('Th232', 90, 232.03805)
+pu238 = Nuclide('Pu238', 94, 238.0)
+pu239 = Nuclide('Pu239', 94, 239.0)
+pu240 = Nuclide('Pu240', 94, 240.0)
+pu241 = Nuclide('Pu241', 94, 241.0)
+pu242 = Nuclide('Pu242', 94, 242.0)
+f19 = Nuclide('F19', 9, 18.998403)
+be9 = Nuclide('Be9', 4, 9.012182)
+li6 = Nuclide('li6', 3, 9.012182)
+li7 = Nuclide('li7', 3, 9.012182)
+cl37 = Nuclide('cl37', 17, 36.965903)
+mg24= Nuclide('mg24', 12, 23.985042)
+mg25= Nuclide('mg25', 12, 24.985837)
+mg26= Nuclide('mg26', 12, 25.982593)
+na23 = Nuclide('na23', 11, 22.989770)
 udict = {u235:0.1995, u238:0.8005}
 fdict = {f19:1}
 cldict = {cl37:1}
@@ -134,14 +134,14 @@ cldict = {cl37:1}
 pudict = {pu238:0.019497, pu239:0.5875682, pu240:0.2371, pu241:0.10133776, pu242:0.05449704}
 mgdict = {mg24:0.7899, mg25:0.10, mg26:0.1101}
 nadict = {na23:1}
-cl = Nuclide('Cl', cldict)
-u = Nuclide('U', udict)
-f = Nuclide("F", fdict)
-th = Nuclide("Th", {th232:1})
-be = Nuclide("Be", {be9:1})
-pu = Nuclide("Pu", pudict)
-mg = Nuclide("Mg", mgdict)
-na = Nuclide("Na", nadict)
+cl = Element('Cl', cldict)
+u = Element('U', udict)
+f = Element("F", fdict)
+th = Element("Th", {th232:1})
+be = Element("Be", {be9:1})
+pu = Element("Pu", pudict)
+mg = Element("Mg", mgdict)
+na = Element("Na", nadict)
 nacldict = {na:1, cl:1}
 thcl4dict = {th:1, cl:4}
 mgcl2dict = {mg:1, cl:2}
@@ -361,7 +361,7 @@ for mm in range(0, endCoreSize, coreSizeStep):
                     os.system('mpirun -r ssh -np '+ str(int(node*ppn)) +' /home/daiye/bin/mcnp5.mpi n=' + inp)
                     if os.path.isfile(inp+'o'):
                         print('MCNP5 run finished!')
-                        volume = readVolume(inp+'o'))
+                        volume = readVolume(inp+'o')
                         results['fCR'] = mtr.getCR(PurePath.joinpath(Path(os.getcwd()), inp+'o'),
                                                    mode='fixed', tallydic=tallydic, cell=4, 
                                                    matnum=1, volume=volume)
