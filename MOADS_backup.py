@@ -1,19 +1,10 @@
 #!/home/zhuguifeng/BIN/bin/python3.3
 # -*- coding: utf-8 -*-
-
-"""
-Created on Tue Oct 4 09:48:51 2018
-code for ADS burnup, version 1.0, only suport fixed-power mode.
-
-@author: Zhu Guifeng, Thomas
-"""
-
 print()
 print()
 print()
 print("                     ************************************")
 print("                     *          ADS Burnup Code         *")
-print("                     *          Version:       1.0      *")
 print("                     *      Institute:  SINAP, CAS      *")
 print("                     *    Author: Zhu Guifeng, Thomas   *")
 print("                     *         Time: Augest,2018        *")
@@ -8399,12 +8390,6 @@ def GXUO2BRM():
     f.close()
     return
 
-def isnotExcitedNuclides(nuclide):
-    excitedNulides = ['95542', '95544', '61548', '52527', '52529', '48515', '47510']
-    if nuclide in excitedNulides:
-        return False
-    return True
-
 ###############################################################################
 
 #   Main Function
@@ -8829,10 +8814,7 @@ for i in range(0,len(matt)):
         elif int(mattally[i][j]) == 471101:
             lines.append('m'+str(m)+'  47510.58c    1.\n')
         else:
-            if isnotExcitedNuclides(mattally[i][j][0:-1]):
-                lines.append('m'+str(m)+'  '+mattally[i][j][0:-1]+temp[i]+'    1.\n')
-            else:
-                m -= 1
+            lines.append('m'+str(m)+'  '+mattally[i][j][0:-1]+temp[i]+'    1.\n')
 
 for i in range(0,len(matt)):
     (x,y)=rank(i,vol)
@@ -8849,23 +8831,14 @@ for i in range(0,len(matt)):
     for j in range(0,len(mtally[i])):
         lines.append(mtally[i][j])
     lines.append('sd'+fm[i]+'4      '+str(vol[x][y])+'\n')
-emptyline = 0
 with open('mcnpinp', 'r') as fid1, open('mcnp'+inp, 'w') as fid2:
     for line in fid1:
-        lists = line.strip().split()
-        if lists:
-            fid2.writelines(line)
-        else:
-            emptyline += 1
-            if emptyline <= 2:
-                fid2.writelines(line)
-            else:
-                break
-   
-    if line[-1] == '\n':
+        fid2.writelines(line)
+    lists = line.strip().split()
+    if lists:
+        fid2.writelines('\n')
         fid2.writelines(lines)
     else:
-        fid2.writelines('\n')
         fid2.writelines(lines)
 os.remove('mcnpinp')
 
