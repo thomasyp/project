@@ -82,7 +82,8 @@ def getfissrate(filename, cell, matnum, volume):
         fissratedic[nuclide] = volum * atomdensitydic[nuclide] * fisstally
     return fissratedic 
 
-def getThoriumPowerFraction(filename, cell, matnum, volume):
+def getThoriumPowerFraction(path, filename, cell, matnum, volume):
+    mtr = McnpTallyReader()
     fission_energy_dic = defaultdict(lambda: 0)
     nuclidelist = ['90232', '91233', '94239', '94240', '94241', '92233', '92234', '92235', '92238']
     tallydic = {'1003':'94239', '1005':'94241', '1018':'92233', '1020':'92235'}
@@ -94,7 +95,7 @@ def getThoriumPowerFraction(filename, cell, matnum, volume):
         A = float(nuclide[2:])
         Q = 0.00129927 * Z**2 * A**0.5+33.12
         fisstally = readFmtally(PurePath.joinpath(path, filename), tallynum, '-6')
-        fission_energy_dic[nuclide] = volum * atomdensitydic[nuclide] * fisstally * Q 
+        fission_energy_dic[nuclide] = volume * atomdensitydic[nuclide] * fisstally * Q 
     tot_energy = 0
     for nuclide, fission_energy in fission_energy_dic.items():
         tot_energy += fission_energy

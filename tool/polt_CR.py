@@ -63,10 +63,10 @@ def getCR(filename, tallydic, cell, matnum, volume):
         fisstally = readFmtally(filename, tallynum, '-6')
         captureratedic[nuclide] = volume * atomdensitydic[nuclide] * capturetally
         fissratedic[nuclide] = volume * atomdensitydic[nuclide] * fisstally
-    cr = (captureratedic['90232']+captureratedic['92234']+captureratedic['92238']+\
-        captureratedic['94240']-captureratedic['91233']) / (captureratedic['92233']+\
-        captureratedic['92235']+captureratedic['94239']+captureratedic['94241']+\
-        fissratedic['92233']+fissratedic['92235']+fissratedic['94239']+\
+    cr = (captureratedic['90232']+captureratedic['92234']+captureratedic['92238']+
+        captureratedic['94240']-captureratedic['91233']) / (captureratedic['92233']+
+        captureratedic['92235']+captureratedic['94239']+captureratedic['94241']+
+        fissratedic['92233']+fissratedic['92235']+fissratedic['94239']+
         fissratedic['94241'])
     return cr    
 

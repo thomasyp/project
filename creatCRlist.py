@@ -4,8 +4,8 @@ from pathlib import Path, PurePath
 import numpy as np
 
 mtr = McnpTallyReader()
-path = Path('D:\\work\\mcnpxwork\\博士课题\\msasd\\氯盐堆\\r150\\四代\\burnup\\g4OUT')
-basefilename = 'g4o'
+path = Path('D:\work\mcnpxwork\博士课题\msasd\氯盐堆\\r150\钛合金\g1OUT')
+basefilename = 'g1o'
 # filename = '-'.join([basefilename, str(1), str(15)])
 # # nuclidelist = ['90232', '91233', '94239', '94240', '94241', '92233', '92234', '92235', '92238']
 # # atomdensitydic = {}
@@ -29,7 +29,7 @@ volum = 2.12058E+07
 #     fissratedic['94241'])
 # print(getCR(PurePath.joinpath(path, filename), tallydic, 4, 1, volum))
 # print (atomdensitydic)
-loopdic = {1:4, 2:8, 3:5}
+loopdic = {1:4, 2:3, 3:15}
 # loopdic = {1:21}
 crlist = []
 for key in loopdic.keys():

@@ -92,6 +92,13 @@ class McnpinpHandler(object):
         
         return targetline
 
+    
+    def isMcnpTitle(self, line):
+        linelist = line.split()         
+        result = False if line[0].isspace() or re.fullmatch('c', linelist[0], re.I)  else True
+        
+        return result
+
 
     def readCellCards(self, inpname):
         """
@@ -104,10 +111,12 @@ class McnpinpHandler(object):
         """
         section = 0
         cellcards = []
+        content = []
 
         with open(inpname, 'r') as fid:
             for eachline in fid:
                 # restrict in cell cards 
+                content.append(eachline)
                 lines = eachline.strip()
                 if lines:
                     if section == McnpinpHandler.CELL_SECTION:
@@ -120,8 +129,9 @@ class McnpinpHandler(object):
                         
                 else:
                     section += 1
-                    
-        return cellcards[1:]  # delete title
+        if self.isMcnpTitle(content[0]):
+            return cellcards[1:]  # delete title
+        return cellcards
 
 
     def readSurfaceCards(self, inpname):
