@@ -940,17 +940,29 @@ class McnpTallyReader(object):
         matnum = str(matnum) 
         cell = str(cell)    
         nuclidefractioninfo = self.readNuclideFraction(filename, mode)
-        nuclidefractiondic = defaultdict(lambda: 0)
-        if ''.join([nuclide, ',']) in nuclidefractioninfo[str(matnum)]:
-            
-            nuclidefractiondic[nuclide] = float(nuclidefractioninfo[matnum][nuclidefractioninfo[matnum].index(nuclide+',')+1])
-        
+        print(nuclidefractioninfo)
+        nuclidefractiondic = nuclidefractioninfo[str(matnum)]
         materialatomdensitydic = self.readMaterialInfo(filename)
-        if mode == 'atom':
-            return float(materialatomdensitydic[cell][0])*nuclidefractiondic[nuclide]
-        else:
-            return float(materialatomdensitydic[cell][1])*nuclidefractiondic[nuclide]
 
+        if mode == 'atom':
+            return float(materialatomdensitydic[cell][0])*float(nuclidefractiondic[nuclide])
+        else:
+            return float(materialatomdensitydic[cell][1])*float(nuclidefractiondic[nuclide])
+    
+    def deleteComma(self, content_list):
+        comma = ','
+        index_of_first_item = 0
+        for index, content in enumerate(content_list):
+            if comma in content:
+                content_list[index] = content.split(comma)[index_of_first_item]
+        return content_list
+    
+    def list2dict(self, content_list):
+        content_dict = {}
+        for nuclide_index in range(0, len(content_list), 2):
+            fraction_index = nuclide_index + 1
+            content_dict[content_list[nuclide_index]] = content_list[fraction_index]
+        return content_dict
 
     def readNuclideFraction(self, filename, mode):
         '''
@@ -961,7 +973,7 @@ class McnpTallyReader(object):
             需要读取的 mcnp输出文件名：filename
             模式：mode 两种模式质量密度（mass） 和 原子数密度（atom）
         Return:
-            返回类型list, 核素份额
+            返回类型dict, 核素份额 {m: {nuclide: fraction}}
             
         '''
 
@@ -979,7 +991,6 @@ class McnpTallyReader(object):
 
         tag = False
         emptyline = 0
-        contentlist = []
         content = ''
         with open(filename, 'r') as fid:
             for line in fid:
@@ -994,15 +1005,39 @@ class McnpTallyReader(object):
                             content = ''.join([content, line])
                     else:
                         emptyline += 1
-        contentlist = content.strip().split()
-        splitpos = []
-        for ii, data in enumerate(contentlist):
-            if data.isdecimal():
-                splitpos.append(ii)
-        splitpos.append(len(contentlist))
+        content_list = content.split('\n')
+        filterd_content_list = []
+        for content in content_list:
+            test_list = content.strip().split()
+            if test_list:
+                if re.fullmatch('\d+', test_list[0]) or re.fullmatch('\d+,', test_list[0]):
+                    filterd_content_list.append(content.strip())
+                    
         result = defaultdict(lambda: 0)
-        for ii in range(len(splitpos)-1):
-            result[contentlist[splitpos[ii]]] = contentlist[(splitpos[ii]+1):splitpos[ii+1]]
+        fraction_dict = defaultdict(lambda: 0)
+        m_num = 0
+        for string in filterd_content_list:
+            test_list = string.split()
+            for index, substring in enumerate(test_list):
+                if re.fullmatch('\d+', substring):
+                    result[m_num] = fraction_dict
+                    m_num = substring
+                    fraction_dict = defaultdict(lambda: 0) 
+                if re.fullmatch('\d+,', substring):
+                    fraction_dict[substring[:-1]] = test_list[index+1]
+       # print(string_list)
+       # with open('tt.txt', 'w') as fid:
+       #     fid.write(content)
+       # contentlist = content.strip().split()
+       # splitpos = []
+       # for ii, data in enumerate(contentlist):
+       #     if data.isdecimal():
+       #         splitpos.append(ii)
+       # splitpos.append(len(contentlist))
+       # for ii in range(len(splitpos)-1):
+       #     content_list_with_no_comma = self.deleteComma(contentlist[(splitpos[ii]+1):splitpos[ii+1]])
+       #     content_dict = self.list2dict(content_list_with_no_comma)
+       #     result[contentlist[splitpos[ii]]] = content_dict
             
         return result
                
