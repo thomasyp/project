@@ -940,7 +940,6 @@ class McnpTallyReader(object):
         matnum = str(matnum) 
         cell = str(cell)    
         nuclidefractioninfo = self.readNuclideFraction(filename, mode)
-        print(nuclidefractioninfo)
         nuclidefractiondic = nuclidefractioninfo[str(matnum)]
         materialatomdensitydic = self.readMaterialInfo(filename)
 
