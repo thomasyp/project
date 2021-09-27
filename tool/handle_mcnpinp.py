@@ -48,8 +48,12 @@ class McnpinpHandler(object):
         else:
             self.errorMessage("section input error!")
             return -1
-        with open(inpname, 'r', encoding="utf-8") as fid:
-            content = fid.readlines()
+        try:
+            with open(inpname, 'r', encoding="utf-8") as fid:
+               content = fid.readlines()
+        except UnicodeDecodeError: 
+            with open(inpname, 'r') as fid:
+               content = fid.readlines()
         line = ''
         targetline = None
         numSeparator = 0

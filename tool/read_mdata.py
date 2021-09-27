@@ -127,88 +127,92 @@ def readMdataFile(mdata_file):
     return mdata
 
 def readMdataIntoHDF5(source, nps, mdataFileName, hdfFileName):
-    """
-    Fuction name:
-        readMdataIntoHDF5
-    Fuction:
-        读取dict 数据并存入hdf5格式文件中,
-        Rslt * Vol等数据
-    Input parameter:
-        需要读取的 mdata文件名：mdataFileName
-        需要写入的 hdf5文件名：hdfFileName
+	"""
+	Fuction name:
+		readMdataIntoHDF5
+	Fuction:
+		读取dict 数据并存入hdf5格式文件中,
+		Rslt * Vol等数据
+	Input parameter:
+		源强：source
+		模拟粒子数： nps
+		需要读取的 mdata文件名：mdataFileName
+		需要写入的 hdf5文件名：hdfFileName
 
-    Return:
-        0
-    """
-    dimension = []
-    nx = 0
-    ny = 0
-    nz = 0
-    xcord = []
-    ycord = []
-    zcord = []
-    grouplists = [] # group name in hdf5 file
+	Return:
+		0
+	"""
+	dimension = []
+	nx = 0
+	ny = 0
+	nz = 0
+	xcord = []
+	ycord = []
+	zcord = []
+	grouplists = [] # group name in hdf5 file
 
-    mdata = readMdataFile(mdataFileName)
-    numtallys = mdata['meshtally_num']
-    with  h5py.File(hdfFileName, "w") as hdfid:
-        for ii in range(numtallys):
-            groupname = 'mesh_{:}'.format(ii + 1)
-            hdfid.create_group(groupname)
-        grouplists = [x for x in hdfid]
-        for ii in range(numtallys):
-            meshinfo = 'mesh_{:}_info'.format(ii+1)
-            meshtally = 'meshtally_{:}'.format(ii+1)
-            mesh_type = mdata['mesh_{:}_type'.format(ii+1)]
-            nx = mdata[meshinfo][0][2]
-            ny = mdata[meshinfo][0][3]
-            nz = mdata[meshinfo][0][4]
-            # rectangular mesh : 网格数据个数为(nx - 1) * (ny - 1) * (nz - 1)
-            if mesh_type == '1':
-                nmeshs = (nx - 1) * (ny - 1) * (nz - 1)
-                dimension = [int(nx - 1), int(ny - 1), int(nz - 1)]
-                hdfid[grouplists[ii]].create_dataset(
-                    'dimension', data=dimension)
-            # cylindrical mesh: nz 为角向，0到360
-            elif mesh_type == '2':
-                nmeshs = (nx - 1) * (ny - 1) * nz
-                dimension = [int(nx - 1), int(ny - 1), int(nz)]
-                hdfid[grouplists[ii]].create_dataset(
-                    'dimension', data=dimension)
-            # spherical mesh: ny 为角向，0到180; nz 为角向，0到360
-            elif mesh_type == '3':
-                nmeshs = (nx - 1) * ny * nz
-                dimension = [int(nx - 1), int(ny), int(nz)]
-                hdfid[grouplists[ii]].create_dataset(
-                    'dimension', data=dimension)
-            else:
-                raise Exception(
-                    'Error: The mesh type is {}, not supported!'.format(
-                        mesh_type))
-            # 写入coordinates
-            xcord = mdata[meshtally]['mesh_x']
-            ycord = mdata[meshtally]['mesh_y']
-            zcord = mdata[meshtally]['mesh_z']
-            dd = [x for x in xcord]
-            hdfid[grouplists[ii]].create_dataset('XCoordinate', data=dd)
-            dd = [x for x in ycord]
-            hdfid[grouplists[ii]].create_dataset('YCoordinate', data=dd)
-            dd = [x for x in zcord]
-            hdfid[grouplists[ii]].create_dataset('ZCoordinate', data=dd)
-            # 写入统计结果和误差
-            arrd = [dd*source/nps for dd in mdata[meshtally]['data']] 
-            dd = np.array(arrd).reshape(dimension[0], dimension[1], dimension[2])
-            hdfid[grouplists[ii]].create_dataset('data', data=dd)
-            arrd = mdata[meshtally]['error']
-            dd = np.array(arrd).reshape(dimension[0], dimension[1], dimension[2])
-            hdfid[grouplists[ii]].create_dataset('error', data=dd)
+	mdata = readMdataFile(mdataFileName)
+	numtallys = mdata['meshtally_num']
+	with  h5py.File(hdfFileName, "w") as hdfid:
+		for ii in range(numtallys):
+			groupname = 'mesh_{:}'.format(ii + 1)
+			hdfid.create_group(groupname)
+		grouplists = [x for x in hdfid]
+		for ii in range(numtallys):
+			meshinfo = 'mesh_{:}_info'.format(ii+1)
+			meshtally = 'meshtally_{:}'.format(ii+1)
+			mesh_type = mdata['mesh_{:}_type'.format(ii+1)]
+			nx = mdata[meshinfo][0][2]
+			ny = mdata[meshinfo][0][3]
+			nz = mdata[meshinfo][0][4]
+			# rectangular mesh : 网格数据个数为(nx - 1) * (ny - 1) * (nz - 1)
+			if mesh_type == '1':
+				nmeshs = (nx - 1) * (ny - 1) * (nz - 1)
+				dimension = [int(nx - 1), int(ny - 1), int(nz - 1)]
+				print('dimensiong:', dimension)
+				hdfid[grouplists[ii]].create_dataset(
+					'dimension', data=dimension)
+			# cylindrical mesh: nz 为角向，0到360
+			elif mesh_type == '2':
+				nmeshs = (nx - 1) * (ny - 1) * nz
+				dimension = [int(nx - 1), int(ny - 1), int(nz)]
+				hdfid[grouplists[ii]].create_dataset(
+					'dimension', data=dimension)
+			# spherical mesh: ny 为角向，0到180; nz 为角向，0到360
+			elif mesh_type == '3':
+				nmeshs = (nx - 1) * ny * nz
+				dimension = [int(nx - 1), int(ny), int(nz)]
+				hdfid[grouplists[ii]].create_dataset(
+					'dimension', data=dimension)
+			else:
+				raise Exception(
+					'Error: The mesh type is {}, not supported!'.format(
+						mesh_type))
+			# 写入coordinates
+			xcord = mdata[meshtally]['mesh_x']
+			ycord = mdata[meshtally]['mesh_y']
+			zcord = mdata[meshtally]['mesh_z']
+			dd = [x for x in xcord]
+			hdfid[grouplists[ii]].create_dataset('XCoordinate', data=dd)
+			dd = [x for x in ycord]
+			hdfid[grouplists[ii]].create_dataset('YCoordinate', data=dd)
+			dd = [x for x in zcord]
+			hdfid[grouplists[ii]].create_dataset('ZCoordinate', data=dd)
+			# 写入统计结果和误差
+			arrd = [dd*source/nps for dd in mdata[meshtally]['data']] 
+			dd = np.array(arrd).reshape(dimension[2], dimension[0], dimension[1])
+			hdfid[grouplists[ii]].create_dataset('data', data=dd)
+			arrd = mdata[meshtally]['error']
+			dd = np.array(arrd).reshape(dimension[2], dimension[0], dimension[1])
+			hdfid[grouplists[ii]].create_dataset('error', data=dd)
 
 
 if __name__ == '__main__':
     proton_intensity = 4e-3 #mA
-    MeV2J = 1.6022e-13
+    # MeV2J = 1.6022e-13
     proton_num_per_A = 6.24e18
-    source = proton_intensity*proton_num_per_A*MeV2J
+    # source = proton_intensity*proton_num_per_A*MeV2J
+    source = proton_intensity*proton_num_per_A
     print(source)
-    readMdataIntoHDF5(source, 50000, 'mdatb', 'power.hdf5')
+    readMdataIntoHDF5(source, 1e7, 'mdat', 'power.hdf5')
     # print(mdata['mesh_z'])
