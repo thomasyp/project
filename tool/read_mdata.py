@@ -20,7 +20,7 @@ def readByteRange(fid):
     return num
 
 def skipDataBlock(fid):
-    struct.unpack('i', fid.read(kBytesPerInt))
+	(num,) = struct.unpack('i', fid.read(kBytesPerInt))
 
 def readString(fid, byte_range):
     char_list = []
@@ -90,43 +90,43 @@ def readRealData(fid, totmesh_num):
     return data
 
 def readMdataFile(mdata_file):
-    mdata = {}
-    with open(mdata_file, 'rb') as fid:
-        fid.seek(0, 0)
-        num_bytes = readByteRange(fid)
-        mdata['title'] = readString(fid, int(num_bytes/kBytesPerChar))
-        skipDataBlock(fid)
-        num_bytes = readByteRange(fid)
-        data_list = []
-        (meshtally_num, ) = struct.unpack('i', fid.read(kBytesPerInt))
-        mdata['meshtally_num'] = meshtally_num
-        string = readString(fid, num_bytes-8)
-        mdata['mcnp_version_time'] = string
-        (num, ) = struct.unpack('i', fid.read(kBytesPerInt))
-        print(mdata['mcnp_version_time'])
-        skipDataBlock(fid)
-        num_bytes = readByteRange(fid)
-        twenty_zeros = readData(fid, num_bytes, 'i')
-        for ii in range(meshtally_num):
-            skipDataBlock(fid)
-            meshtally = 'mesh_{:}_info'.format(ii+1)
-            mdata[meshtally] = readMeshInfo(fid)
-            totnum_mesh = 'totnum_mesh_{:}'.format(ii+1)
-            mdata[totnum_mesh] = mdata[meshtally][0][6]
-            mdata['mesh_{:}_type'.format(ii+1)] = str(mdata[meshtally][0][0])[0] 
+	mdata = {}
+	with open(mdata_file, 'rb') as fid:
+		fid.seek(0, 0)
+		num_bytes = readByteRange(fid)
+		mdata['title'] = readString(fid, int(num_bytes/kBytesPerChar))
+		skipDataBlock(fid)
+		num_bytes = readByteRange(fid)
+		data_list = []
+		(meshtally_num, ) = struct.unpack('i', fid.read(kBytesPerInt))
+		mdata['meshtally_num'] = meshtally_num
+		string = readString(fid, num_bytes-8)
+		mdata['mcnp_version_time'] = string
+		(nps, ) = struct.unpack('i', fid.read(kBytesPerInt))
+		mdata['nps'] = nps
+		print(mdata['mcnp_version_time'])
+		skipDataBlock(fid)
+		num_bytes = readByteRange(fid)
+		twenty_zeros = readData(fid, num_bytes, 'i')
+		for ii in range(meshtally_num):
+			skipDataBlock(fid)
+			meshtally = 'mesh_{:}_info'.format(ii+1)
+			mdata[meshtally] = readMeshInfo(fid)
+			totnum_mesh = 'totnum_mesh_{:}'.format(ii+1)
+			mdata[totnum_mesh] = mdata[meshtally][0][6]
+			mdata['mesh_{:}_type'.format(ii+1)] = str(mdata[meshtally][0][0])[0] 
 
-        for ii in range(meshtally_num):
-            skipDataBlock(fid)
-            meshtally_info = 'mesh_{:}_info'.format(ii+1)
-            meshtally = 'meshtally_{:}'.format(ii+1)
-            totnum_mesh = mdata[meshtally_info][0][6] 
-            data = readRealData(fid, totnum_mesh)
-            mdata[meshtally] = data
-        
-    
-    return mdata
+		for ii in range(meshtally_num):
+			skipDataBlock(fid)
+			meshtally_info = 'mesh_{:}_info'.format(ii+1)
+			meshtally = 'meshtally_{:}'.format(ii+1)
+			totnum_mesh = mdata[meshtally_info][0][6] 
+			data = readRealData(fid, totnum_mesh)
+			mdata[meshtally] = data
+		
+	return mdata
 
-def readMdataIntoHDF5(source, nps, mdataFileName, hdfFileName):
+def readMdataIntoHDF5(source, mdataFileName, hdfFileName):
 	"""
 	Fuction name:
 		readMdataIntoHDF5
@@ -135,7 +135,6 @@ def readMdataIntoHDF5(source, nps, mdataFileName, hdfFileName):
 		Rslt * Vol等数据
 	Input parameter:
 		源强：source
-		模拟粒子数： nps
 		需要读取的 mdata文件名：mdataFileName
 		需要写入的 hdf5文件名：hdfFileName
 
@@ -169,7 +168,7 @@ def readMdataIntoHDF5(source, nps, mdataFileName, hdfFileName):
 			if mesh_type == '1':
 				nmeshs = (nx - 1) * (ny - 1) * (nz - 1)
 				dimension = [int(nx - 1), int(ny - 1), int(nz - 1)]
-				print('dimensiong:', dimension)
+				print('dimension:', dimension)
 				hdfid[grouplists[ii]].create_dataset(
 					'dimension', data=dimension)
 			# cylindrical mesh: nz 为角向，0到360
@@ -199,6 +198,7 @@ def readMdataIntoHDF5(source, nps, mdataFileName, hdfFileName):
 			dd = [x for x in zcord]
 			hdfid[grouplists[ii]].create_dataset('ZCoordinate', data=dd)
 			# 写入统计结果和误差
+			nps = mdata['nps']
 			arrd = [dd*source/nps for dd in mdata[meshtally]['data']] 
 			dd = np.array(arrd).reshape(dimension[2], dimension[0], dimension[1])
 			hdfid[grouplists[ii]].create_dataset('data', data=dd)
@@ -214,5 +214,5 @@ if __name__ == '__main__':
     # source = proton_intensity*proton_num_per_A*MeV2J
     source = proton_intensity*proton_num_per_A
     print(source)
-    readMdataIntoHDF5(source, 1e7, 'mdat', 'power.hdf5')
+    readMdataIntoHDF5(source, 'mdat', 'power1.hdf5')
     # print(mdata['mesh_z'])
